@@ -1,68 +1,79 @@
 import 'package:flutter/material.dart';
 
-class  WelcomePage  extends StatelessWidget {
+class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
   @override
-  
-  Widget build(BuildContext context) {
-    print('LoginScreen loaded');
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Background
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 24),
+Widget build(BuildContext context) {
+  print('WelcomePage loaded');
+  return Scaffold(
+    body: Stack(
+      children: [
+        // Background with opacity
+        Opacity(
+          opacity: 0.1, // Adjust opacity here
+          child: Container(
             decoration: BoxDecoration(
-              color: Colors.teal[100],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("Welcome to the", style: TextStyle(fontSize: 18)),
-                Text("SmartPath Translator",
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Georgia')),
-                SizedBox(height: 40),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {
-                        print('Navigating to SignupPage');
-                        Navigator.pushNamed(context, '/signup'); 
-                      },
-                      child: Text("Sign Up"),
-                    ),
-                    SizedBox(width: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        
-                        Navigator.pushNamed(context, '/login');
-                      },
-                      child: Text("Log In"),
-                    ),
-                  ],
-                ),
-              ],
+              image: DecorationImage(
+                image: AssetImage('assets/Welcome_background.jpg'),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
-
-          // Guest "X" Button
+        ),
+          // Foreground content
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Welcome to the", style: TextStyle(fontSize: 18)),
+              Text(
+                "SmartPath Translator",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Georgia',
+                ),
+              ),
+              SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      print('Navigating to SignupPage');
+                      Navigator.pushNamed(context, '/signup');
+                    },
+                    child: Text("Sign Up"),
+                  ),
+                  SizedBox(width: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/login');
+                    },
+                    child: Text("Log In"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          // Positioned widget for "Continue as Guest"
           Positioned(
             top: 40,
             right: 20,
-            child: GestureDetector(
-              onTap: () {
-                // Navigate to home screen as guest
-                // Navigator.pushNamed(context, '/home');
+            child: TextButton(
+              onPressed: () {
+                // Navigate to TranslatorScreen as guest
+                Navigator.pushNamed(context, '/translate');
               },
-              child: Icon(Icons.close, color: Colors.black54, size: 28),
+              child: Text(
+                "Continue as Guest",
+                style: TextStyle(
+                  color: Colors.black54, // Change text color here
+                  fontSize: 16, // Change font size here
+                ),
+              ),
             ),
-          )
+          ),
         ],
       ),
     );

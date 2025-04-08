@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635177377945",
+    "project_id": "flutter-db-b80a6",
+    "storage_bucket": "flutter-db-b80a6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635177377945:android:fa8547280514773afb1808",
+        "android_client_info": {
+          "package_name": "com.smartpath.smarttranslate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCkdWgEPJGh5H2845kXrg13nNhXTT6a_vc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

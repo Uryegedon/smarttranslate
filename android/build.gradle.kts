@@ -1,3 +1,14 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.google.gms:google-services:4.3.15") // Add this line
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10")
+    }
+}
+
 allprojects {
     repositories {
         google()
