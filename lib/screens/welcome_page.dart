@@ -1,7 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
+
+
+
+
+  void continueAsGuest(BuildContext context) async{
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isGuest', true);
+    Navigator.pushReplacementNamed(context, '/translate');
+  }
 
   @override
 Widget build(BuildContext context) {
@@ -63,7 +73,7 @@ Widget build(BuildContext context) {
             child: TextButton(
               onPressed: () {
                 // Navigate to TranslatorScreen as guest
-                Navigator.pushNamed(context, '/translate');
+                continueAsGuest(context);
               },
               child: Text(
                 "Continue as Guest",

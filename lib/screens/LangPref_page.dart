@@ -1,0 +1,107 @@
+import 'package:flutter/material.dart';
+
+class LanguagePreferencesScreen extends StatefulWidget {
+  const LanguagePreferencesScreen({super.key});
+
+  @override
+  State<LanguagePreferencesScreen> createState() => _LanguagePreferencesScreenState();
+}
+
+class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
+  String _selectedLanguage = 'English';
+  bool _soundEffectsEnabled = true;
+
+  final List<String> _languages = ['English', 'Spanish', 'Filipino'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Icon(Icons.arrow_back, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Language and Preferences',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                ],
+              ),
+            ),
+
+            const Divider(thickness: 1, color: Colors.black),
+
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.language),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Display Language',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const Spacer(),
+                      DropdownButton<String>(
+                        value: _selectedLanguage,
+                        underline: const SizedBox(),
+                        items: _languages.map((String language) {
+                          return DropdownMenuItem<String>(
+                            value: language,
+                            child: Text(language),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedLanguage = newValue!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      const Text(
+                        'Sound Effects',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: _soundEffectsEnabled,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _soundEffectsEnabled = value;
+                          });
+                        },
+                        activeColor: Colors.green,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

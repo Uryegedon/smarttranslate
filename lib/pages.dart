@@ -1,0 +1,9 @@
+export 'screens/welcome_page.dart';
+export 'screens/login_page.dart';
+export 'screens/signup_page.dart';
+export 'screens/translate_page.dart';
+export 'screens/minigames_page.dart';
+export 'screens/profile_page.dart';
+export 'screens/soundandnotif_page.dart';
+export 'screens/LangPref_page.dart';
+export 'minigames/guesslang_page.dart';

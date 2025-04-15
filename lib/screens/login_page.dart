@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'translate_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -96,6 +97,24 @@ class _LoginScreenState extends State<LoginScreen> {
       isLoading = false;
     });
   }
+
+  // Save the login state in SharedPreferences
+  try{
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+
+    Navigator.pushReplacementNamed(context, '/translate');
+  } catch (e) {
+    print("Error saving login state: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("An error occurred while saving login state.")),
+    );  
+  }
+
+
+
+
+
 }
 
 
@@ -109,9 +128,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('LoginScreen loaded');
     return Scaffold(
-      appBar: AppBar(title: Text("SmartPath Translator")),
+      appBar: AppBar(title: Text("SmartPath Translator"),
+      centerTitle: true,
+      automaticallyImplyLeading: false,
+      ),
+      
       body: Container(
         decoration: BoxDecoration(
           color: const Color.fromARGB(255, 255, 255, 255),

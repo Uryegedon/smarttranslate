@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,31 +32,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true; // Loading state
 
   @override
-  void initState() {
-    super.initState();
-    _fetchUsername(); // Fetch the username when the screen loads
-  }
+void initState() {
+  super.initState();
+  _fetchUsername(); // Fetch the username when the screen loads
+}
 
-  Future<void> _fetchUsername() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        setState(() {
-          username = doc['username']; // Retrieve the username from Firestore
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+Future<void> _fetchUsername() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final bool isGuest = prefs.getBool('isGuest') ?? false;
+
+    if (isGuest) {
       setState(() {
-        username = 'Unknown User'; // Fallback if an error occurs
+        username = 'Guest User'; // Set username for guest users
+        isLoading = false;
+      });
+      return;
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      setState(() {
+        username = doc['username']; // Retrieve the username from Firestore
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        username = 'Unknown User'; // Fallback if no user is logged in
         isLoading = false;
       });
     }
+  } catch (e) {
+    setState(() {
+      username = 'Unknown User'; // Fallback if an error occurs
+      isLoading = false;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -94,9 +111,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       TextButton(
                         onPressed: () {
                           // Navigate to profile editing page
+                          if (username == 'Guest User'){
+                            Navigator.pushNamed(context, '/login');
+                          } else{
+                            Navigator.pushNamed(context, '/signup');
+                          }
                         },
-                        child: const Text(
-                          'View Profile',
+                        child:  Text(
+                          username  == 'Guest User' ? 'Log in' : 'View Profile',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.blue,
@@ -121,9 +143,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Language Preferences
                   ListTile(
                     leading: const Icon(Icons.language),
-                    title: const Text("Language Preferences TODO//lagay page and settings"),
+                    title: const Text("Language Preferences"),
                     onTap: () {
                       // Navigate to language preferences
+                      Navigator.pushNamed(context, '/langpref');
                     },
                   ),
                   // OCR Settings
@@ -176,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       FirebaseAuth.instance.signOut().then((_) {
                         Navigator.pushNamedAndRemoveUntil(
                           context,
-                          '/login',
+                          '/',
                           (route) => false,
                         );
                       });

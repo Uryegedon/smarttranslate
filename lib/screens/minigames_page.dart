@@ -37,19 +37,22 @@ class GameSelectionScreen extends StatelessWidget {
             ),
 
   SizedBox(height: 40),
-            // Four oval buttons
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                shape: StadiumBorder(),
-                minimumSize: Size(230, 70),
-                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                backgroundColor: Color.fromARGB(255, 231, 229, 229),
-              ),
-              child: Text('Word Matching',
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
+
+ElevatedButton(
+  onPressed: () {
+    Navigator.pushNamed(context, '/wordmatching');
+  },
+  style: ElevatedButton.styleFrom(
+    shape: StadiumBorder(),
+    minimumSize: Size(230, 70),
+    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+    backgroundColor: Color.fromARGB(255, 231, 229, 229),
+  ),
+  child: Text(
+    'Guess the Language',
+    style: TextStyle(color: Colors.black),
+  ),
+),
 
             SizedBox(height: 20),
             ElevatedButton(
