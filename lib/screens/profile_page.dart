@@ -152,8 +152,9 @@ Future<void> _fetchUsername() async {
                   // OCR Settings
                   ListTile(
                     leading: const Icon(Icons.camera_alt),
-                    title: const Text("OCR Settings TODO//lagay page and settings"),
+                    title: const Text("OCR Settings"),
                     onTap: () {
+                       Navigator.pushNamed(context, '/ocrsettings'); // Make sure this route is registered
                       // Navigate to OCR settings
                     },
                   ),
@@ -169,8 +170,10 @@ Future<void> _fetchUsername() async {
                   // Theme Settings
                   ListTile(
                     leading: const Icon(Icons.brightness_6),
-                    title: const Text("Theme Settings TODO//lagay page and settings"),
+                    title: const Text("Theme Settings"),
                     onTap: () {
+                      Navigator.pushNamed(context, '/themesettings'); // This will navigate to ThemeSettingsPage
+
                       // Navigate to theme settings
                     },
                   ),
@@ -235,8 +238,9 @@ Future<void> _fetchUsername() async {
           BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 14,
-              backgroundImage: AssetImage('assets/avatar.jpg'),
+              
               backgroundColor: Colors.greenAccent,
+              child: Icon(Icons.person, color: Colors.white),
             ),
             label: '',
           ),

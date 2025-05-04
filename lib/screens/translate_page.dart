@@ -1,174 +1,206 @@
 import 'package:flutter/material.dart';
+import 'translationservice.dart';
 
-
-
-class TranslatorScreen extends StatelessWidget {
+class TranslatorScreen extends StatefulWidget {
   const TranslatorScreen({super.key});
 
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-      Navigator.pushReplacementNamed(context, '/translate');
-      break;
-      case 1:
-      Navigator.pushReplacementNamed(context, '/camera');
-      break;
-      case 2:
-      Navigator.pushReplacementNamed(context, '/minigames');
-      case 3:
-      Navigator.pushReplacementNamed(context, '/profile');
-      break;
+  @override
+  _TranslatorScreenState createState() => _TranslatorScreenState();
+}
+
+class _TranslatorScreenState extends State<TranslatorScreen> {
+  final TextEditingController _controller = TextEditingController();
+  String _translatedText = "";
+
+  void _translate(String text) async {
+    if (text.isNotEmpty) {
+      try {
+        String translated = await translateText(text);
+        setState(() {
+          _translatedText = translated;
+        });
+      } catch (e) {
+        setState(() {
+          _translatedText = "Translation failed: $e";
+        });
+      }
+    } else {
+      setState(() {
+        _translatedText = "";
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Change background color here
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255), // Light teal background
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent, // Change app bar background color here
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        title: Text(
+        centerTitle: true,
+        title: const Text(
           'SmartPath Translator',
           style: TextStyle(
-            fontSize: 24, // Change title font size here
-            fontWeight: FontWeight.bold, // Change title font weight here
-            color: Colors.black, // Change title color here
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
-        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0), // Adjust padding here
-              child: Column(
-                children: [
-                  LanguageCard(
-                    language: 'English',
-                    text: 'Hello, how are you',
-                    cardColor: Colors.purpleAccent, // Change English card color here
-                    iconColor: Colors.black, // Change microphone icon color here
-                  ),
-                  SizedBox(height: 16), // Adjust spacing between cards here
-                  LanguageCard(
-                    language: 'Spanish',
-                    text: 'Hola, cómo estás',
-                    cardColor: Colors.teal, // Change Spanish card color here
-                    iconColor: Colors.black, // Change speaker icon color here
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Alternatives',
-                    style: TextStyle(
-                      fontSize: 16, // Change alternatives text size here
-                      color: Colors.black, // Change alternatives text color here
-                    ),
-                  ),
-                ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Input Card
+              _buildLanguageCard(
+                language: 'English',
+                controller: _controller,
+                onChanged: _translate,
+                color: const Color(0xFF9E8FB2),
+                isOutput: false,
               ),
-            ),
+              const SizedBox(height: 20),
+              // Output Card
+              _buildLanguageCard(
+                language: 'Spanish',
+                outputText: _translatedText,
+                color: const Color(0xFF6DB7A3),
+                isOutput: true,
+              ),
+              const SizedBox(height: 30),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Alternatives',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-          BottomNavigationBar(
-        currentIndex: 3,
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.blue[300],
         selectedItemColor: Colors.black,
-        onTap: (index) => _onItemTapped(context, index), // Handle navigation
+        onTap: (index) => _onItemTapped(context, index),
         items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.translate), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.camera_alt), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.extension), label: ''),
           BottomNavigationBarItem(
-            icon: Icon(Icons.translate),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.camera_alt),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.extension),
-            label: '',
-          ),
-           BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 14,
-              backgroundImage: AssetImage('assets/avatar.jpg'),
+              
               backgroundColor: Colors.greenAccent,
+              child: Icon(Icons.person, color: Colors.white),
             ),
             label: '',
           ),
-        ],
-      ),
         ],
       ),
     );
   }
-}
 
-class LanguageCard extends StatelessWidget {
-  final String language;
-  final String text;
-  final Color cardColor;
-  final Color iconColor;
-
-  const LanguageCard({super.key, 
-    required this.language,
-    required this.text,
-    required this.cardColor,
-    required this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(16), // Adjust card padding here
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16), // Adjust card border radius here
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26, // Change shadow color here
-            blurRadius: 8, // Adjust shadow blur radius here
-            offset: Offset(0, 4), // Adjust shadow offset here
+  Widget _buildLanguageCard({
+    required String language,
+    TextEditingController? controller,
+    String? outputText,
+    Color? color,
+    bool isOutput = false,
+    Function(String)? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+          decoration: BoxDecoration(
+            color: Colors.pink[100],
+            borderRadius: BorderRadius.circular(6),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                language,
-                style: TextStyle(
-                  fontSize: 18, // Change language label font size here
-                  fontWeight: FontWeight.bold, // Change language label font weight here
-                  color: Colors.white, // Change language label color here
+              Text(language),
+              const Icon(Icons.expand_more),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: isOutput
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        outputText ?? "",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    Column(
+                      children: const [
+                        Icon(Icons.copy, color: Colors.white),
+                        SizedBox(height: 8),
+                        Icon(Icons.volume_up, color: Colors.white),
+                      ],
+                    ),
+                  ],
+                )
+              : Column(
+                  children: [
+                    TextField(
+                      controller: controller,
+                      onChanged: onChanged,
+                      maxLines: null,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        hintText: 'Hello, how are you',
+                        hintStyle: TextStyle(color: Colors.white70),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: const [
+                        Icon(Icons.mic, color: Colors.white),
+                        SizedBox(width: 8),
+                        Icon(Icons.volume_up, color: Colors.white),
+                      ],
+                    )
+                  ],
                 ),
-              ),
-              Icon(Icons.arrow_drop_down, color: Colors.white), // Change dropdown icon color here
-            ],
-          ),
-          SizedBox(height: 8), // Adjust spacing between language and text here
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 16, // Change text font size here
-              color: Colors.white, // Change text color here
-            ),
-          ),
-          SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(Icons.mic, color: iconColor), // Change microphone icon color here
-              Icon(Icons.volume_up, color: iconColor), // Change speaker icon color here
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+
+  void _onItemTapped(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/translate');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/camera');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/minigames');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+    }
   }
 }

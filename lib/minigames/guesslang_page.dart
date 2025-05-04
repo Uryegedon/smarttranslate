@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 
 class GuessLanguageScreen extends StatefulWidget {
+  const GuessLanguageScreen({super.key});
+
   @override
   _GuessLanguageScreenState createState() => _GuessLanguageScreenState();
 }

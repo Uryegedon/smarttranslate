@@ -121,8 +121,9 @@ bottomNavigationBar: BottomNavigationBar(
            BottomNavigationBarItem(
             icon: CircleAvatar(
               radius: 14,
-              backgroundImage: AssetImage('assets/avatar.jpg'),
+              
               backgroundColor: Colors.greenAccent,
+              child: Icon(Icons.person, color: Colors.white),
             ),
             label: '',
           ),

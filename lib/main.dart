@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'screens/themeprovider.dart'; // Import ThemeProvider from screens folder
 import 'pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensures Flutter is initialized before Firebase
-  await Firebase.initializeApp(); // Initializes Firebase
-  runApp(SmartTranslateApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+
+  final themeProvider = ThemeProvider();
+  await themeProvider.init(); // Wait for SharedPreferences to load
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: themeProvider,
+      child: const SmartTranslateApp(),
+    ),
+  );
 }
 
 class SmartTranslateApp extends StatelessWidget {
@@ -23,34 +34,71 @@ class SmartTranslateApp extends StatelessWidget {
     return '/'; // Redirect to WelcomePage
   }
 
-
-@override
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
       future: _getInitialRoute(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator(); // Show a loading indicator
+          return const MaterialApp(
+            home: Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
         }
-        return MaterialApp(
-          title: 'SmartPath Translator',
-          debugShowCheckedModeBanner: false,
-          theme: ThemeData(
-            primarySwatch: Colors.teal,
-          ),
-          initialRoute: snapshot.data,
-          routes: {
-            '/': (context) => WelcomePage(),
-            '/login': (context) => LoginScreen(),
-            '/signup': (context) => SignupPage(),
-            '/translate': (context) => TranslatorScreen(),
-            '/minigames': (context) => GameSelectionScreen(),
-            '/profile': (context) => ProfileScreen(),
-            '/soundandnotif': (context) => SoundNotificationPage(),
-            '/langpref': (context) => LanguagePreferencesScreen(),
-            '/wordmatching': (context) => GuessLanguageScreen(),
-          },
-        );
+
+        return Consumer<ThemeProvider>(
+  builder: (context, themeProvider, child) {
+    debugPrint("Current theme mode: ${themeProvider.isDarkMode ? 'Dark' : 'Light'}");  // Debug print
+    return MaterialApp(
+      title: 'SmartPath Translator',
+      debugShowCheckedModeBanner: false,
+      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      theme: ThemeData.light().copyWith(
+        primaryColor: themeProvider.highlightColor,
+        buttonTheme: ButtonThemeData(buttonColor: themeProvider.highlightColor),
+        textTheme: ThemeData.light().textTheme.copyWith(
+          bodyLarge: TextStyle(color: themeProvider.fontColor),
+          bodyMedium: TextStyle(color: themeProvider.fontColor),
+          titleLarge: TextStyle(color: themeProvider.fontColor),
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: themeProvider.highlightColor,
+          foregroundColor: themeProvider.fontColor,
+        ),
+      ),
+      darkTheme: ThemeData.dark().copyWith(
+        primaryColor: themeProvider.highlightColor,
+        buttonTheme: ButtonThemeData(buttonColor: themeProvider.highlightColor),
+        textTheme: ThemeData.dark().textTheme.copyWith(
+          bodyLarge: TextStyle(color: themeProvider.fontColor),
+          bodyMedium: TextStyle(color: themeProvider.fontColor),
+          titleLarge: TextStyle(color: themeProvider.fontColor),
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: themeProvider.highlightColor,
+          foregroundColor: themeProvider.fontColor,
+        ),
+      ),
+      initialRoute: snapshot.data,
+      routes: {
+        '/': (context) => const WelcomePage(),
+        '/login': (context) => const LoginScreen(),
+        '/signup': (context) => SignupPage(),
+        '/translate': (context) => TranslatorScreen(),
+        '/minigames': (context) => GameSelectionScreen(),
+        '/profile': (context) => ProfileScreen(),
+        '/soundandnotif': (context) => SoundNotificationPage(),
+        '/langpref': (context) => LanguagePreferencesScreen(),
+        '/wordmatching': (context) => GuessLanguageScreen(),
+        '/camera': (context) => CameraOcrPage(),
+        '/ocrsettings': (context) => OcrSettingsPage(),
+        '/themesettings': (context) => ThemeSettingsPage(),
+      },
+    );
+  },
+);
+
       },
     );
   }

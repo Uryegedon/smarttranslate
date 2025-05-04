@@ -8,6 +8,7 @@ class SignupPage extends StatelessWidget {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
 
+  final bool _agreedToTerms = false;
   SignupPage({super.key});
 
   Future<bool> _isUsernameUnique(String username) async {
@@ -18,6 +19,8 @@ class SignupPage extends StatelessWidget {
         .get();
     return querySnapshot.docs.isEmpty;
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
