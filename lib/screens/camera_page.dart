@@ -233,49 +233,53 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
               ],
             ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.blue[300],
-        selectedItemColor: Colors.black,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/translate');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/camera');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/minigames');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.translate),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.camera_alt),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.extension),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              radius: 14,
-              backgroundColor: Colors.greenAccent,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
-            label: '',
-          ),
-        ],
+  currentIndex: 1, // The initial selected index
+  type: BottomNavigationBarType.fixed,
+  backgroundColor: Colors.blue[300],
+  selectedItemColor: Colors.black,
+  unselectedItemColor: Colors.white.withOpacity(0.7),
+  selectedFontSize: 14, // Optional: You can leave this out as labels are removed
+  unselectedFontSize: 12, // Optional: You can leave this out as labels are removed
+  onTap: (index) {
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/translate');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/camera');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/minigames');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+    }
+  },
+  items: const [
+    BottomNavigationBarItem(
+      icon: Icon(Icons.translate, size: 30),
+      label: '', // Empty label
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.camera_alt, size: 30),
+      label: '', // Empty label
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.extension, size: 30),
+      label: '', // Empty label
+    ),
+    BottomNavigationBarItem(
+      icon: CircleAvatar(
+        radius: 14,
+        backgroundColor: Colors.greenAccent,
+        child: Icon(Icons.person, color: Colors.white, size: 20),
       ),
+      label: '', // Empty label
+    ),
+  ],
+),
+
     );
   }
 }
