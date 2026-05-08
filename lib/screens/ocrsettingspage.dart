@@ -22,67 +22,138 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("OCR Settings"),
-        backgroundColor: Colors.teal,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          SwitchListTile(
-            title: const Text("Auto Translate Recognized Text"),
-            value: _autoTranslate,
-            onChanged: (value) {
-              setState(() {
-                _autoTranslate = value;
-              });
-            },
-          ),
-          const SizedBox(height: 20),
-          ListTile(
-            title: const Text("Target Language"),
-            trailing: DropdownButton<String>(
-              value: _targetLanguage,
-              items: _languages.map((lang) {
-                return DropdownMenuItem(
-                  value: lang['code'],
-                  child: Text(lang['label']!),
-                );
-              }).toList(),
-              onChanged: (val) {
-                setState(() {
-                  _targetLanguage = val!;
-                });
-              },
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                      ),
+                      child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text('OCR Settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: theme.colorScheme.onSurface)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          ListTile(
-            title: const Text("Result Text Size"),
-            subtitle: Slider(
-              value: _textSize,
-              min: 12.0,
-              max: 32.0,
-              divisions: 10,
-              label: _textSize.round().toString(),
-              onChanged: (value) {
-                setState(() {
-                  _textSize = value;
-                });
-              },
+            const SizedBox(height: 28),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      children: [
+                        // Auto translate
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(color: primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                child: Icon(Icons.auto_awesome_rounded, size: 20, color: primary),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(child: Text('Auto Translate', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+                              Switch(value: _autoTranslate, onChanged: (v) => setState(() => _autoTranslate = v)),
+                            ],
+                          ),
+                        ),
+                        Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Divider(height: 1, color: theme.dividerColor)),
+                        // Target language
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40, height: 40,
+                                decoration: BoxDecoration(color: primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                child: Icon(Icons.language_rounded, size: 20, color: primary),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(child: Text('Target Language', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(color: primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _targetLanguage, isDense: true,
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: primary),
+                                    icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: primary),
+                                    items: _languages.map((lang) => DropdownMenuItem(value: lang['code'], child: Text(lang['label']!))).toList(),
+                                    onChanged: (val) => setState(() => _targetLanguage = val!),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Divider(height: 1, color: theme.dividerColor)),
+                        // Text size
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 40, height: 40,
+                                    decoration: BoxDecoration(color: primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                    child: Icon(Icons.text_fields_rounded, size: 20, color: primary),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(child: Text('Text Size: ${_textSize.round()}', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500))),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Slider(
+                                value: _textSize, min: 12.0, max: 32.0, divisions: 10,
+                                label: _textSize.round().toString(),
+                                onChanged: (v) => setState(() => _textSize = v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity, height: 56,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_rounded),
+                      label: const Text('Save Settings'),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.save),
-            label: const Text("Save Settings"),
-            onPressed: () {
-              // You can use a settings manager or local storage here
-              Navigator.pop(context); // Go back to the OCR page
-            },
-          )
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -2,40 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'themeawarewidget.dart'; // Import the theme-aware widgets
+import 'themeawarewidget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/profile');
-        break;
-    }
-  }
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? username; // Variable to store the username
-  bool isLoading = true; // Loading state
+  String? username;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsername(); // Fetch the username when the screen loads
+    _fetchUsername();
   }
 
   Future<void> _fetchUsername() async {
@@ -44,227 +27,281 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final bool isGuest = prefs.getBool('isGuest') ?? false;
 
       if (isGuest) {
-        setState(() {
-          username = 'Guest User'; // Set username for guest users
-          isLoading = false;
-        });
+        setState(() { username = 'Guest User'; isLoading = false; });
         return;
       }
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        setState(() {
-          username = doc['username']; // Retrieve the username from Firestore
-          isLoading = false;
-        });
+            .collection('users').doc(user.uid).get();
+        setState(() { username = doc['username']; isLoading = false; });
       } else {
-        setState(() {
-          username = 'Unknown User'; // Fallback if no user is logged in
-          isLoading = false;
-        });
+        setState(() { username = 'Unknown User'; isLoading = false; });
       }
     } catch (e) {
-      setState(() {
-        username = 'Unknown User'; // Fallback if an error occurs
-        isLoading = false;
-      });
+      setState(() { username = 'Unknown User'; isLoading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ThemeAwareScaffold(
-      appBar: ThemeAwareAppBar(
-        leading: SizedBox(),
-        title: ThemeAwareText(
-          'Profile',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: ThemeAwareWidget(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-              // Profile Section (Profile picture aligned with username)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+    return ThemeAwareScaffold(
+      body: Column(
+        children: [
+          // ── Teal gradient profile header ──
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(
+              24,
+              MediaQuery.of(context).padding.top + 20,
+              24,
+              28,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [primary, primary.withOpacity(0.82)],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Profile',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
                   children: [
-                    // Profile picture
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundImage: AssetImage('assets/avatar.jpg'),
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: Colors.white.withOpacity(0.35), width: 2),
+                      ),
+                      child: const Icon(Icons.person_rounded, color: Colors.white, size: 34),
                     ),
-                    const SizedBox(width: 20),
-                    // Username and "View Profile" button
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ThemeAwareText(
-                          isLoading
-                              ? 'Loading...' // Show loading text while fetching
-                              : username ?? 'Unknown User', // Display username
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            // Navigate to profile editing page
-                            if (username == 'Guest User') {
-                              Navigator.pushNamed(context, '/login');
-                            } else {
-                              Navigator.pushNamed(context, '/signup');
-                            }
-                          },
-                          child: ThemeAwareText(
-                            username == 'Guest User' ? 'Log in' : 'View Profile',
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isLoading ? 'Loading...' : (username ?? 'Unknown User'),
                             style: const TextStyle(
-                              fontSize: 14,
-                              decoration: TextDecoration.underline, // Underline the text
-                              color: Colors.blue, // Optional: Add a color for the text
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          GestureDetector(
+                            onTap: () {
+                              if (username == 'Guest User') {
+                                Navigator.pushNamed(context, '/login');
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                username == 'Guest User' ? 'Log in →' : 'Signed in ✓',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              const SizedBox(height: 30),
-              const Divider(thickness: 2),
-              const SizedBox(height: 20),
+          // ── Settings list (fills remaining space) ──
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _sectionLabel('General', theme),
+                  const SizedBox(height: 10),
+                  _settingsCard(theme, [
+                    _tile(Icons.language_rounded, 'Language Preferences', theme,
+                        () => Navigator.pushNamed(context, '/langpref')),
+                    _divider(theme),
+                    _tile(Icons.camera_alt_rounded, 'OCR Settings', theme,
+                        () => Navigator.pushNamed(context, '/ocrsettings')),
+                    _divider(theme),
+                    _tile(Icons.volume_up_rounded, 'Sound & Notifications', theme,
+                        () => Navigator.pushNamed(context, '/soundandnotif')),
+                  ]),
 
-              // Settings and Options below the profile
-              Expanded(
-                child: ListView(
-                  children: [
-                    // Language Preferences
-                    ListTile(
-                      leading: const Icon(Icons.language),
-                      title: const Text("Language Preferences"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/langpref');
-                      },
-                    ),
-                    // OCR Settings
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text("OCR Settings"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/ocrsettings');
-                      },
-                    ),
-                    // Sound and Notifications
-                    ListTile(
-                      leading: const Icon(Icons.volume_up),
-                      title: const Text("Sound and Notifications"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/soundandnotif');
-                      },
-                    ),
-                    // Theme Settings
-                    ListTile(
-                      leading: const Icon(Icons.brightness_6),
-                      title: const Text("Theme Settings"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/themesettings');
-                      },
-                    ),
-                    // Help & Support
-                    ListTile(
-                      leading: const Icon(Icons.help),
-                      title: const Text("Help and Support"),
-                      onTap: () {
-                        // Navigate to help and support
-                      },
-                    ),
-                    // Privacy Settings
-                    ListTile(
-                      leading: const Icon(Icons.security),
-                      title: const Text("Privacy Settings"),
-                      onTap: () {
-                        // Navigate to privacy settings
-                      },
-                    ),
-                    // Log Out
-                    ListTile(
-                      leading: const Icon(Icons.logout),
-                      title: const Text("Log out"),
-                      onTap: () {
-                        FirebaseAuth.instance.signOut().then((_) {
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/',
-                            (route) => false,
-                          );
+                  const SizedBox(height: 24),
+                  _sectionLabel('Appearance', theme),
+                  const SizedBox(height: 10),
+                  _settingsCard(theme, [
+                    _tile(Icons.palette_rounded, 'Theme Settings', theme,
+                        () => Navigator.pushNamed(context, '/themesettings')),
+                  ]),
+
+                  const SizedBox(height: 24),
+                  _sectionLabel('Support', theme),
+                  const SizedBox(height: 10),
+                  _settingsCard(theme, [
+                    _tile(Icons.help_outline_rounded, 'Help and Support', theme, () {}),
+                    _divider(theme),
+                    _tile(Icons.shield_outlined, 'Privacy Settings', theme, () {}),
+                  ]),
+
+                  const SizedBox(height: 24),
+                  _settingsCard(theme, [
+                    _tile(
+                      Icons.logout_rounded,
+                      'Log out',
+                      theme,
+                      () {
+                        FirebaseAuth.instance.signOut().then((_) async {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.clear();
+                          Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
                         });
                       },
+                      iconColor: theme.colorScheme.error,
+                      titleColor: theme.colorScheme.error,
+                      showChevron: false,
                     ),
-                  ],
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: ModernBottomNav(
+        currentIndex: 3,
+        onTap: (index) {
+          switch (index) {
+            case 0: Navigator.pushReplacementNamed(context, '/translate'); break;
+            case 1: Navigator.pushReplacementNamed(context, '/camera'); break;
+            case 2: Navigator.pushReplacementNamed(context, '/minigames'); break;
+            case 3: Navigator.pushReplacementNamed(context, '/profile'); break;
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: theme.hintColor,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsCard(ThemeData theme, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(children: children),
+    );
+  }
+
+  Widget _tile(
+    IconData icon,
+    String title,
+    ThemeData theme,
+    VoidCallback onTap, {
+    Color? iconColor,
+    Color? titleColor,
+    bool showChevron = true,
+  }) {
+    final primary = theme.colorScheme.primary;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: (iconColor ?? primary).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, size: 20, color: iconColor ?? primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: titleColor ?? theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
+              if (showChevron)
+                Icon(Icons.chevron_right_rounded, size: 22, color: theme.hintColor.withOpacity(0.5)),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-  currentIndex: 1, // The initial selected index
-  type: BottomNavigationBarType.fixed,
-  backgroundColor: Colors.blue[300],
-  selectedItemColor: Colors.black,
-  unselectedItemColor: Colors.white.withOpacity(0.7),
-  selectedFontSize: 14, // Optional: You can leave this out as labels are removed
-  unselectedFontSize: 12, // Optional: You can leave this out as labels are removed
-  onTap: (index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
-  },
-  items: const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.translate, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.camera_alt, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.extension, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: CircleAvatar(
-        radius: 14,
-        backgroundColor: Colors.greenAccent,
-        child: Icon(Icons.person, color: Colors.white, size: 20),
-      ),
-      label: '', // Empty label
-    ),
-  ],
-),
+    );
+  }
 
+  Widget _divider(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Divider(height: 1, color: theme.dividerColor),
     );
   }
 }

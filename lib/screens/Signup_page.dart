@@ -17,6 +17,7 @@ class _SignupPageState extends State<SignupPage> {
 
   bool _isLoading = false;
   bool _agreedToTerms = false;
+  bool _obscurePassword = true;
 
   Future<bool> _isUsernameUnique(String username) async {
     final firestore = FirebaseFirestore.instance;
@@ -26,17 +27,18 @@ class _SignupPageState extends State<SignupPage> {
         .get();
     return querySnapshot.docs.isEmpty;
   }
+
   void _showTermsDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Terms and Privacy Policy'),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 400,
-        child: SingleChildScrollView(
-          child: Text(
-            '''
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Terms and Privacy Policy'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: SingleChildScrollView(
+            child: Text(
+              '''
 Acceptance of Terms
 
 By downloading, accessing, or using Smart Translate, you agree to be bound by these Terms. If you do not agree, please do not use the App.
@@ -93,7 +95,7 @@ Your Rights and Choices:
 • Access, update, delete your data.
 • Contact us at Smartpathsolutions@gmail.com for data or privacy concerns.
 
-Children’s Privacy:
+Children's Privacy:
 Smart Translate is not intended for children under 13. We do not knowingly collect personal data from children.
 
 Changes to Policy:
@@ -103,212 +105,320 @@ Contact Us:
 Smartpathsolutions@gmail.com
 Smart Path Solutions
 ''',
-            style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
+            ),
           ),
         ),
+        actions: [
+          TextButton(
+            child: const Text('Close'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          child: const Text('Close'),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ],
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Sign Up',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                // Back button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-
-                    // Username Field
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Username',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a username';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Email Field
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password Field
-                    TextFormField(
-                      controller: _passwordController,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
-                      ),
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your password';
-                        }
-                        if (value.length < 6) {
-                          return 'Password must be at least 6 characters long';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Terms and Conditions Checkbox (optional)
-                    Row(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    Checkbox(
-      value: _agreedToTerms,
-      onChanged: (value) {
-        setState(() {
-          _agreedToTerms = value ?? false;
-        });
-      },
-    ),
-    Expanded(
-      child: GestureDetector(
-        onTap: () => _showTermsDialog(context),
-        child: RichText(
-          text: const TextSpan(
-            text: 'I agree to the ',
-            style: TextStyle(color: Colors.black),
-            children: [
-              TextSpan(
-                text: 'Terms and Conditions',
-                style: TextStyle(
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
+                    child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  ],
-),
 
-                    const SizedBox(height: 20),
+                const SizedBox(height: 36),
 
-                    // Sign Up Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                // Header
+                Text(
+                  "Create\nAccount ✨",
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                    letterSpacing: -1.0,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Join SmartPath and start translating",
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.hintColor,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Form
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Username
+                      Text(
+                        "Username",
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.person_outline_rounded),
+                          hintText: 'Choose a username',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter a username';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Email
+                      Text(
+                        "Email",
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.email_outlined),
+                          hintText: 'Enter your email',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Password
+                      Text(
+                        "Password",
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          hintText: 'Create a password',
+                          suffixIcon: GestureDetector(
+                            onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                            child: Icon(
+                              _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                              color: theme.hintColor,
+                            ),
                           ),
                         ),
-                        onPressed: _isLoading ? null : () async {
-                          if (!_formKey.currentState!.validate()) return;
-                          if (!_agreedToTerms) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('You must agree to the terms')),
-                            );
-                            return;
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your password';
                           }
-
-                          final username = _usernameController.text.trim();
-                          final email = _emailController.text.trim();
-                          final password = _passwordController.text.trim();
-
-                          setState(() => _isLoading = true);
-
-                          final isUnique = await _isUsernameUnique(username);
-                          if (!isUnique) {
-                            setState(() => _isLoading = false);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Username is already taken.')),
-                            );
-                            return;
+                          if (value.length < 6) {
+                            return 'Password must be at least 6 characters long';
                           }
-
-                          try {
-                            final userCredential = await FirebaseAuth.instance
-                                .createUserWithEmailAndPassword(email: email, password: password);
-
-                            await FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(userCredential.user?.uid)
-                                .set({
-                              'username': username,
-                              'email': email,
-                              'createdAt': FieldValue.serverTimestamp(),
-                            });
-
-                            Navigator.pushReplacementNamed(context, '/');
-                          } on FirebaseAuthException catch (e) {
-                            String errorMessage;
-                            if (e.code == 'email-already-in-use') {
-                              errorMessage = 'This email is already in use.';
-                            } else if (e.code == 'weak-password') {
-                              errorMessage = 'The password is too weak.';
-                            } else {
-                              errorMessage = 'An error occurred. Please try again.';
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(errorMessage)),
-                            );
-                          } finally {
-                            setState(() => _isLoading = false);
-                          }
+                          return null;
                         },
-                        child: _isLoading
-                            ? const CircularProgressIndicator()
-                            : const Text('Sign Up', style: TextStyle(fontSize: 16)),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 20),
+
+                      // Terms and conditions
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Checkbox(
+                            value: _agreedToTerms,
+                            onChanged: (value) {
+                              setState(() {
+                                _agreedToTerms = value ?? false;
+                              });
+                            },
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _showTermsDialog(context),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: 'I agree to the ',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    fontSize: 14,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Terms and Conditions',
+                                      style: TextStyle(
+                                        color: primary,
+                                        fontWeight: FontWeight.w600,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Sign Up button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : () async {
+                            if (!_formKey.currentState!.validate()) return;
+                            if (!_agreedToTerms) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('You must agree to the terms')),
+                              );
+                              return;
+                            }
+
+                            final username = _usernameController.text.trim();
+                            final email = _emailController.text.trim();
+                            final password = _passwordController.text.trim();
+
+                            setState(() => _isLoading = true);
+
+                            final isUnique = await _isUsernameUnique(username);
+                            if (!isUnique) {
+                              setState(() => _isLoading = false);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Username is already taken.')),
+                              );
+                              return;
+                            }
+
+                            try {
+                              final userCredential = await FirebaseAuth.instance
+                                  .createUserWithEmailAndPassword(email: email, password: password);
+
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(userCredential.user?.uid)
+                                  .set({
+                                'username': username,
+                                'email': email,
+                                'createdAt': FieldValue.serverTimestamp(),
+                              });
+
+                              Navigator.pushReplacementNamed(context, '/');
+                            } on FirebaseAuthException catch (e) {
+                              String errorMessage;
+                              if (e.code == 'email-already-in-use') {
+                                errorMessage = 'This email is already in use.';
+                              } else if (e.code == 'weak-password') {
+                                errorMessage = 'The password is too weak.';
+                              } else {
+                                errorMessage = 'An error occurred. Please try again.';
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(errorMessage)),
+                              );
+                            } finally {
+                              setState(() => _isLoading = false);
+                            }
+                          },
+                          child: _isLoading
+                              ? SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('Sign Up', style: TextStyle(fontSize: 16)),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Login link
+                      Center(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: RichText(
+                            text: TextSpan(
+                              text: "Already have an account? ",
+                              style: TextStyle(
+                                color: theme.hintColor,
+                                fontSize: 15,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: "Log In",
+                                  style: TextStyle(
+                                    color: primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ),

@@ -15,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   bool isLoading = false;
+  bool _obscurePassword = true;
 
   // Log out the user if they are already logged in (for testing)
   void logOut() async {
@@ -110,14 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
       SnackBar(content: Text("An error occurred while saving login state.")),
     );  
   }
-
-
-
-
-
 }
-
-
 
   void continueAsGuest() {
     Navigator.pushReplacement(
@@ -128,69 +122,156 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
-      appBar: AppBar(title: Text("SmartPath Translator"),
-      centerTitle: true,
-      automaticallyImplyLeading: false,
-      ),
-      
-      body: Container(
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 255, 255, 255),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person, size: 80, color: Colors.deepPurple),
-            SizedBox(height: 20),
-            TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.email),
-                labelText: "Username/Email",
-                filled: true,
-              ),
-            ),
-            SizedBox(height: 15),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.lock),
-                labelText: "Password",
-                filled: true,
-              ),
-            ),
-            SizedBox(height: 30),
-            Center(
-              child: isLoading
-                  ? CircularProgressIndicator()
-                  : ElevatedButton(
-                      onPressed: login,
-                      style: ElevatedButton.styleFrom(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                        textStyle: TextStyle(fontSize: 16),
-                      ),
-                      child: Text("Log In"),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                // Back button
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: theme.cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-            ),
-             SizedBox(height: 20), // Space between login button and sign-up text
-            TextButton(
-              onPressed:(){
-                Navigator.pushNamed(context, '/signup');
-              },
-                  // Navigate to sign-up page
-              child: Text(
-                'Don\'t have an account? Sign Up',
-                style: TextStyle(
-                  color: Colors.blue,  // Change color as needed
-                  fontSize: 16,         // Adjust font size
+                    child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                  ),
                 ),
-              ),
-            )
-          ],
+                
+                const SizedBox(height: 40),
+
+                // Header
+                Text(
+                  "Welcome\nBack 👋",
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                    letterSpacing: -1.0,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Sign in to continue translating",
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.hintColor,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 48),
+
+                // Email/Username field
+                Text(
+                  "Email or Username",
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.person_outline_rounded),
+                    hintText: "Enter your email or username",
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Password field
+                Text(
+                  "Password",
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.lock_outline_rounded),
+                    hintText: "Enter your password",
+                    suffixIcon: GestureDetector(
+                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                      child: Icon(
+                        _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        color: theme.hintColor,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Login button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(primary),
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: login,
+                          child: const Text("Log In"),
+                        ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // Sign up link
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/signup');
+                    },
+                    child: RichText(
+                      text: TextSpan(
+                        text: "Don't have an account? ",
+                        style: TextStyle(
+                          color: theme.hintColor,
+                          fontSize: 15,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: "Sign Up",
+                            style: TextStyle(
+                              color: primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

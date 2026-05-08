@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'themeawarewidget.dart';
 
 class CameraOcrPage extends StatefulWidget {
   const CameraOcrPage({super.key});
@@ -160,126 +161,256 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+
     return Scaffold(
+      backgroundColor: Colors.black,
       body: _cameraController == null || !_cameraController!.value.isInitialized
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(primary),
+              ),
+            )
           : Stack(
               fit: StackFit.expand,
               children: [
-                // Camera Preview full background
+                // Camera Preview
                 CameraPreview(_cameraController!),
 
-                // Recognized text in center
+                // Top gradient overlay
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 120,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.5),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Top bar with title
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 12,
+                  left: 20,
+                  right: 20,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Camera OCR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Settings icon
+                      GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/ocrsettings'),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Recognized text overlay
                 if (_recognizedText.isNotEmpty)
                   Center(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      padding: const EdgeInsets.all(16),
-                      height: MediaQuery.of(context).size.height * 0.3,
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.all(20),
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.of(context).size.height * 0.3,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(12),
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
                       child: SingleChildScrollView(
-                        child: Text(
-                          _recognizedText,
-                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.text_snippet_rounded, size: 18, color: primary),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Recognized Text',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: primary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: () => setState(() => _recognizedText = ''),
+                                  child: Icon(Icons.close_rounded, size: 20, color: theme.hintColor),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _recognizedText,
+                              style: TextStyle(
+                                color: theme.colorScheme.onSurface,
+                                fontSize: 15,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
 
-                // Bottom buttons
+                // Bottom gradient overlay
                 Positioned(
-                  bottom: 30,
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 200,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.6),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Bottom camera controls
+                Positioned(
+                  bottom: 100,
                   left: 0,
                   right: 0,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // Gallery button
-                      CircleAvatar(
-                        backgroundColor: Colors.black54,
-                        child: IconButton(
-                          icon: const Icon(Icons.photo, color: Colors.white),
-                          onPressed: _pickImageFromGallery,
-                        ),
+                      _buildControlButton(
+                        icon: Icons.photo_library_rounded,
+                        onTap: _pickImageFromGallery,
+                        size: 50,
                       ),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 28),
                       // Capture button
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.teal,
-                        child: IconButton(
-                          icon: const Icon(Icons.camera, color: Colors.white, size: 30),
-                          onPressed: _captureAndExtractText,
+                      GestureDetector(
+                        onTap: _captureAndExtractText,
+                        child: Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: primary,
+                            ),
+                            child: const Icon(
+                              Icons.camera_rounded,
+                              color: Colors.white,
+                              size: 32,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 20),
-                      // Flash button (next to capture)
-                      CircleAvatar(
-                        backgroundColor: Colors.black54,
-                        child: IconButton(
-                          icon: Icon(
-                            _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                            color: Colors.white,
-                          ),
-                          onPressed: _toggleFlash,
-                        ),
+                      const SizedBox(width: 28),
+                      // Flash button
+                      _buildControlButton(
+                        icon: _isFlashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                        onTap: _toggleFlash,
+                        size: 50,
+                        isActive: _isFlashOn,
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-      bottomNavigationBar: BottomNavigationBar(
-  currentIndex: 1, // The initial selected index
-  type: BottomNavigationBarType.fixed,
-  backgroundColor: Colors.blue[300],
-  selectedItemColor: Colors.black,
-  unselectedItemColor: Colors.white.withOpacity(0.7),
-  selectedFontSize: 14, // Optional: You can leave this out as labels are removed
-  unselectedFontSize: 12, // Optional: You can leave this out as labels are removed
-  onTap: (index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
-  },
-  items: const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.translate, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.camera_alt, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.extension, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: CircleAvatar(
-        radius: 14,
-        backgroundColor: Colors.greenAccent,
-        child: Icon(Icons.person, color: Colors.white, size: 20),
+      bottomNavigationBar: ModernBottomNav(
+        currentIndex: 1,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushReplacementNamed(context, '/translate');
+              break;
+            case 1:
+              Navigator.pushReplacementNamed(context, '/camera');
+              break;
+            case 2:
+              Navigator.pushReplacementNamed(context, '/minigames');
+              break;
+            case 3:
+              Navigator.pushReplacementNamed(context, '/profile');
+              break;
+          }
+        },
       ),
-      label: '', // Empty label
-    ),
-  ],
-),
+    );
+  }
 
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    double size = 50,
+    bool isActive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: isActive
+              ? Colors.white.withOpacity(0.3)
+              : Colors.white.withOpacity(0.15),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Icon(icon, color: Colors.white, size: 24),
+      ),
     );
   }
 }

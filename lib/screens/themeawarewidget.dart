@@ -171,13 +171,13 @@ class ThemeAwareElevatedButton extends StatelessWidget {
         disabledBackgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
         disabledForegroundColor: theme.colorScheme.onSurface.withOpacity(0.38),
         shadowColor: theme.colorScheme.shadow,
-        elevation: 2,
+        elevation: 0,
         textStyle: theme.textTheme.labelLarge,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(16.0),
         ),
         padding: padding ?? const EdgeInsets.symmetric(
-          vertical: 12.0, horizontal: 24.0),
+          vertical: 16.0, horizontal: 32.0),
       ),
       focusNode: focusNode,
       autofocus: autofocus,
@@ -226,7 +226,7 @@ class ThemeAwareIcon extends StatelessWidget {
 // AppBar Component
 // ========================
 
-/// AppBar that automatically adapts to theme changes
+/// AppBar that automatically adapts to theme changes, supports gradient background
 class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? title;
   final List<Widget>? actions;
@@ -248,6 +248,7 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
   final TextStyle? toolbarTextStyle;
   final TextStyle? titleTextStyle;
   final SystemUiOverlayStyle? systemOverlayStyle;
+  final bool useGradient;
   
   const ThemeAwareAppBar({
     super.key,
@@ -271,36 +272,53 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.toolbarTextStyle,
     this.titleTextStyle,
     this.systemOverlayStyle,
+    this.useGradient = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
     
     return AppBar(
       title: title,
       actions: actions,
       leading: leading,
-      centerTitle: centerTitle,
-      elevation: elevation ?? theme.appBarTheme.elevation,
-      shadowColor: shadowColor ?? theme.appBarTheme.shadowColor,
-      shape: shape ?? theme.appBarTheme.shape,
-      backgroundColor: backgroundColor ?? theme.appBarTheme.backgroundColor ?? theme.colorScheme.primary,
-      foregroundColor: theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary,
-      iconTheme: iconTheme ?? theme.appBarTheme.iconTheme ?? theme.iconTheme,
-      actionsIconTheme: actionsIconTheme ?? theme.appBarTheme.actionsIconTheme ?? theme.iconTheme,
-      primary: primary,
+      centerTitle: centerTitle ?? true,
+      elevation: elevation ?? 0,
+      shadowColor: shadowColor,
+      shape: shape,
+      backgroundColor: useGradient ? Colors.transparent : (backgroundColor ?? theme.appBarTheme.backgroundColor ?? primary),
+      foregroundColor: Colors.white,
+      iconTheme: iconTheme ?? const IconThemeData(color: Colors.white),
+      actionsIconTheme: actionsIconTheme ?? const IconThemeData(color: Colors.white),
+      primary: this.primary,
       excludeHeaderSemantics: excludeHeaderSemantics,
       titleSpacing: titleSpacing ?? NavigationToolbar.kMiddleSpacing,
       toolbarOpacity: toolbarOpacity,
       bottomOpacity: bottomOpacity,
       bottom: bottom,
       leadingWidth: leadingWidth,
-      toolbarTextStyle: toolbarTextStyle ?? theme.appBarTheme.toolbarTextStyle ?? theme.textTheme.titleLarge,
-      titleTextStyle: titleTextStyle ?? theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge?.copyWith(
-        color: theme.colorScheme.onPrimary,
+      toolbarTextStyle: toolbarTextStyle,
+      titleTextStyle: titleTextStyle ?? TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        letterSpacing: -0.3,
       ),
-      systemOverlayStyle: systemOverlayStyle ?? theme.appBarTheme.systemOverlayStyle,
+      systemOverlayStyle: systemOverlayStyle ?? SystemUiOverlayStyle.light,
+      flexibleSpace: useGradient ? Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              primary,
+              primary.withOpacity(0.85),
+            ],
+          ),
+        ),
+      ) : null,
     );
   }
 
@@ -383,6 +401,128 @@ class ThemeAwareScaffold extends StatelessWidget {
       extendBody: extendBody,
       extendBodyBehindAppBar: extendBodyBehindAppBar,
       restorationId: restorationId,
+    );
+  }
+}
+
+// ========================
+// Modern Bottom Navigation
+// ========================
+
+/// A modern floating bottom navigation bar
+class ModernBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final Function(int) onTap;
+
+  const ModernBottomNav({
+    super.key,
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
+    final unselected = theme.hintColor;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                icon: Icons.translate_rounded,
+                index: 0,
+                label: 'Translate',
+                primary: primary,
+                unselected: unselected,
+              ),
+              _buildNavItem(
+                icon: Icons.camera_alt_rounded,
+                index: 1,
+                label: 'Camera',
+                primary: primary,
+                unselected: unselected,
+              ),
+              _buildNavItem(
+                icon: Icons.extension_rounded,
+                index: 2,
+                label: 'Games',
+                primary: primary,
+                unselected: unselected,
+              ),
+              _buildNavItem(
+                icon: Icons.person_rounded,
+                index: 3,
+                label: 'Profile',
+                primary: primary,
+                unselected: unselected,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required int index,
+    required String label,
+    required Color primary,
+    required Color unselected,
+  }) {
+    final isSelected = currentIndex == index;
+    return GestureDetector(
+      onTap: () => onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 20 : 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? primary.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 24,
+              color: isSelected ? primary : unselected,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: primary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
