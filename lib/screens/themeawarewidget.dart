@@ -4,14 +4,14 @@ import 'package:flutter/services.dart'; // For SystemUiOverlayStyle
 import 'package:flutter/gestures.dart'; // For DragStartBehavior
 
 /// A collection of widgets that automatically adapt to the current theme
-/// 
+///
 /// Usage:
-/// 
+///
 /// ```dart
 /// ThemeAwareWidget(
 ///   child: YourWidget(),
 /// )
-/// 
+///
 /// ThemeAwareText(
 ///   'Hello World',
 ///   style: TextStyle(fontWeight: FontWeight.bold),
@@ -25,16 +25,13 @@ import 'package:flutter/gestures.dart'; // For DragStartBehavior
 /// Wraps any widget to ensure proper theme inheritance
 class ThemeAwareWidget extends StatelessWidget {
   final Widget child;
-  
-  const ThemeAwareWidget({
-    super.key,
-    required this.child,
-  });
+
+  const ThemeAwareWidget({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Theme(
       data: theme,
       child: DefaultTextStyle(
@@ -57,22 +54,25 @@ class ThemeAwareText extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
   final bool? softWrap;
-  final double? textScaleFactor;
+  final TextScaler? textScaler;
 
   const ThemeAwareText(
     this.text, {
-    Key? key,
+    super.key,
     this.style,
     this.textAlign,
     this.maxLines,
     this.overflow,
     this.softWrap,
-    this.textScaleFactor,
-  }) : super(key: key);
+    this.textScaler,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final themeStyle = Theme.of(context).textTheme.bodyMedium; // Use theme's default text style
+    final themeStyle =
+        Theme.of(
+          context,
+        ).textTheme.bodyMedium; // Use theme's default text style
     return Text(
       text,
       style: themeStyle?.merge(style), // Merge theme style with custom style
@@ -80,7 +80,7 @@ class ThemeAwareText extends StatelessWidget {
       maxLines: maxLines,
       overflow: overflow,
       softWrap: softWrap,
-      textScaleFactor: textScaleFactor,
+      textScaler: textScaler,
     );
   }
 }
@@ -99,7 +99,7 @@ class ThemeAwareCard extends StatelessWidget {
   final ShapeBorder? shape;
   final Clip? clipBehavior;
   final bool borderOnForeground;
-  
+
   const ThemeAwareCard({
     super.key,
     required this.child,
@@ -115,15 +115,16 @@ class ThemeAwareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       color: theme.cardColor,
       elevation: elevation ?? theme.cardTheme.elevation ?? 1.0,
       margin: margin ?? theme.cardTheme.margin ?? const EdgeInsets.all(8.0),
       shadowColor: shadowColor ?? theme.cardTheme.shadowColor,
-      shape: shape ?? theme.cardTheme.shape ?? RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape:
+          shape ??
+          theme.cardTheme.shape ??
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       clipBehavior: clipBehavior ?? theme.cardTheme.clipBehavior ?? Clip.none,
       borderOnForeground: borderOnForeground,
       child: Padding(
@@ -147,7 +148,7 @@ class ThemeAwareElevatedButton extends StatelessWidget {
   final bool autofocus;
   final Clip clipBehavior;
   final EdgeInsetsGeometry? padding;
-  
+
   const ThemeAwareElevatedButton({
     super.key,
     required this.onPressed,
@@ -162,23 +163,30 @@ class ThemeAwareElevatedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return ElevatedButton(
       onPressed: onPressed,
-      style: style ?? ElevatedButton.styleFrom(
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        disabledBackgroundColor: theme.colorScheme.onSurface.withOpacity(0.12),
-        disabledForegroundColor: theme.colorScheme.onSurface.withOpacity(0.38),
-        shadowColor: theme.colorScheme.shadow,
-        elevation: 2,
-        textStyle: theme.textTheme.labelLarge,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        padding: padding ?? const EdgeInsets.symmetric(
-          vertical: 12.0, horizontal: 24.0),
-      ),
+      style:
+          style ??
+          ElevatedButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+            disabledBackgroundColor: theme.colorScheme.onSurface.withValues(
+              alpha: 0.12,
+            ),
+            disabledForegroundColor: theme.colorScheme.onSurface.withValues(
+              alpha: 0.38,
+            ),
+            shadowColor: theme.colorScheme.shadow,
+            elevation: 2,
+            textStyle: theme.textTheme.labelLarge,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+            padding:
+                padding ??
+                const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+          ),
       focusNode: focusNode,
       autofocus: autofocus,
       clipBehavior: clipBehavior,
@@ -198,7 +206,7 @@ class ThemeAwareIcon extends StatelessWidget {
   final Color? color;
   final String? semanticLabel;
   final TextDirection? textDirection;
-  
+
   const ThemeAwareIcon(
     this.icon, {
     super.key,
@@ -211,7 +219,7 @@ class ThemeAwareIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Icon(
       icon,
       size: size ?? theme.iconTheme.size,
@@ -248,7 +256,7 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
   final TextStyle? toolbarTextStyle;
   final TextStyle? titleTextStyle;
   final SystemUiOverlayStyle? systemOverlayStyle;
-  
+
   const ThemeAwareAppBar({
     super.key,
     this.title,
@@ -276,7 +284,7 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return AppBar(
       title: title,
       actions: actions,
@@ -285,10 +293,17 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: elevation ?? theme.appBarTheme.elevation,
       shadowColor: shadowColor ?? theme.appBarTheme.shadowColor,
       shape: shape ?? theme.appBarTheme.shape,
-      backgroundColor: backgroundColor ?? theme.appBarTheme.backgroundColor ?? theme.colorScheme.primary,
-      foregroundColor: theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary,
+      backgroundColor:
+          backgroundColor ??
+          theme.appBarTheme.backgroundColor ??
+          theme.colorScheme.primary,
+      foregroundColor:
+          theme.appBarTheme.foregroundColor ?? theme.colorScheme.onPrimary,
       iconTheme: iconTheme ?? theme.appBarTheme.iconTheme ?? theme.iconTheme,
-      actionsIconTheme: actionsIconTheme ?? theme.appBarTheme.actionsIconTheme ?? theme.iconTheme,
+      actionsIconTheme:
+          actionsIconTheme ??
+          theme.appBarTheme.actionsIconTheme ??
+          theme.iconTheme,
       primary: primary,
       excludeHeaderSemantics: excludeHeaderSemantics,
       titleSpacing: titleSpacing ?? NavigationToolbar.kMiddleSpacing,
@@ -296,11 +311,18 @@ class ThemeAwareAppBar extends StatelessWidget implements PreferredSizeWidget {
       bottomOpacity: bottomOpacity,
       bottom: bottom,
       leadingWidth: leadingWidth,
-      toolbarTextStyle: toolbarTextStyle ?? theme.appBarTheme.toolbarTextStyle ?? theme.textTheme.titleLarge,
-      titleTextStyle: titleTextStyle ?? theme.appBarTheme.titleTextStyle ?? theme.textTheme.titleLarge?.copyWith(
-        color: theme.colorScheme.onPrimary,
-      ),
-      systemOverlayStyle: systemOverlayStyle ?? theme.appBarTheme.systemOverlayStyle,
+      toolbarTextStyle:
+          toolbarTextStyle ??
+          theme.appBarTheme.toolbarTextStyle ??
+          theme.textTheme.titleLarge,
+      titleTextStyle:
+          titleTextStyle ??
+          theme.appBarTheme.titleTextStyle ??
+          theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.onPrimary,
+          ),
+      systemOverlayStyle:
+          systemOverlayStyle ?? theme.appBarTheme.systemOverlayStyle,
     );
   }
 
@@ -334,7 +356,7 @@ class ThemeAwareScaffold extends StatelessWidget {
   final bool extendBodyBehindAppBar;
   final EdgeInsetsGeometry? padding;
   final String? restorationId;
-  
+
   const ThemeAwareScaffold({
     super.key,
     this.body,
@@ -362,7 +384,7 @@ class ThemeAwareScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: appBar,
       body: body,
@@ -373,7 +395,9 @@ class ThemeAwareScaffold extends StatelessWidget {
       persistentFooterAlignment: persistentFooterAlignment,
       drawer: drawer,
       endDrawer: endDrawer,
-      drawerScrimColor: drawerScrimColor ?? theme.scaffoldBackgroundColor.withOpacity(0.5),
+      drawerScrimColor:
+          drawerScrimColor ??
+          theme.scaffoldBackgroundColor.withValues(alpha: 0.5),
       backgroundColor: backgroundColor ?? theme.scaffoldBackgroundColor,
       bottomNavigationBar: bottomNavigationBar,
       bottomSheet: bottomSheet,

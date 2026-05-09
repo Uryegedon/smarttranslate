@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class SoundNotificationPage extends StatefulWidget {
   const SoundNotificationPage({super.key});
 
@@ -50,7 +49,7 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                         allowNotification = value;
                       });
                     },
-                    activeColor: Colors.black,
+                    activeThumbColor: Colors.black,
                     inactiveThumbColor: Colors.pink[100],
                   ),
                 ],
@@ -65,25 +64,23 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
               ),
               child: Column(
                 children: [
-                  RadioListTile(
-                    value: 'sound',
+                  RadioGroup<String>(
                     groupValue: soundOption,
                     onChanged: (value) {
+                      if (value == null) return;
                       setState(() {
-                        soundOption = value!;
+                        soundOption = value;
                       });
                     },
-                    title: const Text('Allow sound and vibration'),
-                  ),
-                  RadioListTile(
-                    value: 'silent',
-                    groupValue: soundOption,
-                    onChanged: (value) {
-                      setState(() {
-                        soundOption = value!;
-                      });
-                    },
-                    title: const Text('Silent'),
+                    child: const Column(
+                      children: [
+                        RadioListTile(
+                          value: 'sound',
+                          title: Text('Allow sound and vibration'),
+                        ),
+                        RadioListTile(value: 'silent', title: Text('Silent')),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -109,6 +106,6 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
           ],
         ),
       ),
-                );   
+    );
   }
 }

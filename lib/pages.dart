@@ -5,7 +5,7 @@ export 'screens/translate_page.dart';
 export 'screens/minigames_page.dart';
 export 'screens/profile_page.dart';
 export 'screens/soundandnotif_page.dart';
-export 'screens/langPref_page.dart';
+export 'screens/lang_pref_page.dart';
 export 'minigames/guesslang_page.dart';
 export 'screens/camera_page.dart';
 export 'screens/ocrsettingspage.dart';

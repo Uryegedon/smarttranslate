@@ -1,152 +1,91 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class GameSelectionScreen extends StatelessWidget {
   const GameSelectionScreen({super.key});
 
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-      Navigator.pushReplacementNamed(context, '/translate');
-      break;
-      case 1:
-      Navigator.pushReplacementNamed(context, '/camera');
-      break;
-      case 2:
-      Navigator.pushReplacementNamed(context, '/minigames');
-      case 3:
-      Navigator.pushReplacementNamed(context, '/profile');
-      break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        title: const Text(
+          'Minigames',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
           children: [
-            Text('Minigames',
-              style: TextStyle(fontSize: 40, fontWeight: FontWeight.w800),
-            ),
-            SizedBox(height: 20),
-            Text('Choose your game',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-            ),
-
-  SizedBox(height: 40),
-
-ElevatedButton(
-  onPressed: () {
-    Navigator.pushNamed(context, '/wordmatching');
-  },
-  style: ElevatedButton.styleFrom(
-    shape: StadiumBorder(),
-    minimumSize: Size(230, 70),
-    padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-    backgroundColor: Color.fromARGB(255, 231, 229, 229),
-  ),
-  child: Text(
-    'Guess the Language',
-    style: TextStyle(color: Colors.black),
-  ),
-),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                shape: StadiumBorder(),
-                minimumSize: Size(230, 70),
-                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                backgroundColor: Color.fromARGB(255, 231, 229, 229),
-              ),
-              child: Text('TODO//add game',
-                style: TextStyle(color: Colors.black), 
+            Text(
+              'Choose a game',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
               ),
             ),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                shape: StadiumBorder(),
-                minimumSize: Size(230, 70),
-                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                backgroundColor: Color.fromARGB(255, 231, 229, 229),
-              ),
-              child: Text('TODO//add game',
-                style: TextStyle(color: Colors.black),
+            const SizedBox(height: 8),
+            Text(
+              'Practice vocabulary and language recognition.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                shape: StadiumBorder(),
-                minimumSize: Size(230, 70),
-                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                backgroundColor: Color.fromARGB(255, 231, 229, 229),
-              ),
-              child: Text('TODO//add game',
-                style: TextStyle(color: Colors.black),
-              ),
+            const SizedBox(height: 24),
+            _GameTile(
+              icon: Icons.language,
+              title: 'Guess the Language',
+              subtitle: 'Identify whether a word is English or Filipino.',
+              onTap: () => Navigator.pushNamed(context, '/wordmatching'),
             ),
           ],
         ),
       ),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.minigames),
+    );
+  }
+}
 
-bottomNavigationBar: BottomNavigationBar(
-  currentIndex: 1, // The initial selected index
-  type: BottomNavigationBarType.fixed,
-  backgroundColor: Colors.blue[300],
-  selectedItemColor: Colors.black,
-  unselectedItemColor: Colors.white.withOpacity(0.7),
-  selectedFontSize: 14, // Optional: You can leave this out as labels are removed
-  unselectedFontSize: 12, // Optional: You can leave this out as labels are removed
-  onTap: (index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
-  },
-  items: const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.translate, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.camera_alt, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.extension, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: CircleAvatar(
-        radius: 14,
-        backgroundColor: Colors.greenAccent,
-        child: Icon(Icons.person, color: Colors.white, size: 20),
+class _GameTile extends StatelessWidget {
+  const _GameTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
-      label: '', // Empty label
-    ),
-  ],
-),
-
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(icon, color: theme.colorScheme.onPrimaryContainer),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
     );
   }
 }

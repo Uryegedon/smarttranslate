@@ -3,26 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'themeawarewidget.dart'; // Import the theme-aware widgets
+import '../widgets/app_bottom_nav_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
-
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/profile');
-        break;
-    }
-  }
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -53,10 +37,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
         setState(() {
           username = doc['username']; // Retrieve the username from Firestore
           isLoading = false;
@@ -77,6 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return ThemeAwareScaffold(
       appBar: ThemeAwareAppBar(
         leading: SizedBox(),
@@ -84,187 +71,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Profile',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
       ),
       body: SafeArea(
         child: ThemeAwareWidget(
-          child: Column(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              const SizedBox(height: 20),
-
-              // Profile Section (Profile picture aligned with username)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Profile picture
-                    const CircleAvatar(
-                      radius: 30,
-                      backgroundImage: AssetImage('assets/avatar.jpg'),
-                    ),
-                    const SizedBox(width: 20),
-                    // Username and "View Profile" button
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ThemeAwareText(
-                          isLoading
-                              ? 'Loading...' // Show loading text while fetching
-                              : username ?? 'Unknown User', // Display username
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+              Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.person,
+                          color: theme.colorScheme.onPrimaryContainer,
+                          size: 34,
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            // Navigate to profile editing page
-                            if (username == 'Guest User') {
-                              Navigator.pushNamed(context, '/login');
-                            } else {
-                              Navigator.pushNamed(context, '/signup');
-                            }
-                          },
-                          child: ThemeAwareText(
-                            username == 'Guest User' ? 'Log in' : 'View Profile',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              decoration: TextDecoration.underline, // Underline the text
-                              color: Colors.blue, // Optional: Add a color for the text
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ThemeAwareText(
+                              isLoading
+                                  ? 'Loading...'
+                                  : username ?? 'Unknown User',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(0, 36),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              onPressed: () {
+                                if (username == 'Guest User') {
+                                  Navigator.pushNamed(context, '/login');
+                                } else {
+                                  Navigator.pushNamed(context, '/signup');
+                                }
+                              },
+                              child: Text(
+                                username == 'Guest User'
+                                    ? 'Log in'
+                                    : 'View Profile',
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 30),
-              const Divider(thickness: 2),
               const SizedBox(height: 20),
+              _ProfileActionTile(
+                icon: Icons.language,
+                title: 'Language Preferences',
+                onTap: () => Navigator.pushNamed(context, '/langpref'),
+              ),
+              _ProfileActionTile(
+                icon: Icons.camera_alt,
+                title: 'OCR Settings',
+                onTap: () => Navigator.pushNamed(context, '/ocrsettings'),
+              ),
+              _ProfileActionTile(
+                icon: Icons.volume_up,
+                title: 'Sound and Notifications',
+                onTap: () => Navigator.pushNamed(context, '/soundandnotif'),
+              ),
+              _ProfileActionTile(
+                icon: Icons.brightness_6,
+                title: 'Theme Settings',
+                onTap: () => Navigator.pushNamed(context, '/themesettings'),
+              ),
+              _ProfileActionTile(
+                icon: Icons.logout,
+                title: 'Log out',
+                isDestructive: true,
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await FirebaseAuth.instance.signOut();
+                  await prefs.setBool('isLoggedIn', false);
+                  await prefs.setBool('isGuest', false);
 
-              // Settings and Options below the profile
-              Expanded(
-                child: ListView(
-                  children: [
-                    // Language Preferences
-                    ListTile(
-                      leading: const Icon(Icons.language),
-                      title: const Text("Language Preferences"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/langpref');
-                      },
-                    ),
-                    // OCR Settings
-                    ListTile(
-                      leading: const Icon(Icons.camera_alt),
-                      title: const Text("OCR Settings"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/ocrsettings');
-                      },
-                    ),
-                    // Sound and Notifications
-                    ListTile(
-                      leading: const Icon(Icons.volume_up),
-                      title: const Text("Sound and Notifications"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/soundandnotif');
-                      },
-                    ),
-                    // Theme Settings
-                    ListTile(
-                      leading: const Icon(Icons.brightness_6),
-                      title: const Text("Theme Settings"),
-                      onTap: () {
-                        Navigator.pushNamed(context, '/themesettings');
-                      },
-                    ),
-                    // Help & Support
-                    ListTile(
-                      leading: const Icon(Icons.help),
-                      title: const Text("Help and Support"),
-                      onTap: () {
-                        // Navigate to help and support
-                      },
-                    ),
-                    // Privacy Settings
-                    ListTile(
-                      leading: const Icon(Icons.security),
-                      title: const Text("Privacy Settings"),
-                      onTap: () {
-                        // Navigate to privacy settings
-                      },
-                    ),
-                    // Log Out
-                    ListTile(
-                      leading: const Icon(Icons.logout),
-                      title: const Text("Log out"),
-                      onTap: () {
-                        FirebaseAuth.instance.signOut().then((_) {
-                          Navigator.pushNamedAndRemoveUntil(
-                            context,
-                            '/',
-                            (route) => false,
-                          );
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                  if (!context.mounted) return;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/',
+                    (route) => false,
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-  currentIndex: 1, // The initial selected index
-  type: BottomNavigationBarType.fixed,
-  backgroundColor: Colors.blue[300],
-  selectedItemColor: Colors.black,
-  unselectedItemColor: Colors.white.withOpacity(0.7),
-  selectedFontSize: 14, // Optional: You can leave this out as labels are removed
-  unselectedFontSize: 12, // Optional: You can leave this out as labels are removed
-  onTap: (index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
-  },
-  items: const [
-    BottomNavigationBarItem(
-      icon: Icon(Icons.translate, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.camera_alt, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: Icon(Icons.extension, size: 30),
-      label: '', // Empty label
-    ),
-    BottomNavigationBarItem(
-      icon: CircleAvatar(
-        radius: 14,
-        backgroundColor: Colors.greenAccent,
-        child: Icon(Icons.person, color: Colors.white, size: 20),
-      ),
-      label: '', // Empty label
-    ),
-  ],
-),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.profile),
+    );
+  }
+}
 
+class _ProfileActionTile extends StatelessWidget {
+  const _ProfileActionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color =
+        isDestructive ? theme.colorScheme.error : theme.colorScheme.onSurface;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(title, style: TextStyle(color: color)),
+        trailing: isDestructive ? null : const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
     );
   }
 }

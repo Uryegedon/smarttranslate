@@ -44,12 +44,13 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
             title: const Text("Target Language"),
             trailing: DropdownButton<String>(
               value: _targetLanguage,
-              items: _languages.map((lang) {
-                return DropdownMenuItem(
-                  value: lang['code'],
-                  child: Text(lang['label']!),
-                );
-              }).toList(),
+              items:
+                  _languages.map((lang) {
+                    return DropdownMenuItem(
+                      value: lang['code'],
+                      child: Text(lang['label']!),
+                    );
+                  }).toList(),
               onChanged: (val) {
                 setState(() {
                   _targetLanguage = val!;
@@ -81,7 +82,7 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
               // You can use a settings manager or local storage here
               Navigator.pop(context); // Go back to the OCR page
             },
-          )
+          ),
         ],
       ),
     );

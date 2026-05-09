@@ -92,10 +92,7 @@ class SmartTranslateApp extends StatelessWidget {
                 '/themesettings': (context) => ThemeSettingsPage(),
               },
               builder: (context, child) {
-                return AnimatedTheme(
-                  data: Theme.of(context),
-                  child: child!,
-                );
+                return AnimatedTheme(data: Theme.of(context), child: child!);
               },
             );
           },

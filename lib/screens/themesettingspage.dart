@@ -8,18 +8,14 @@ class ThemeSettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
 
     // Get available theme modes (excluding system)
-    final availableModes = ThemeMode.values.where((mode) => mode != ThemeMode.system).toList();
+    final availableModes =
+        ThemeMode.values.where((mode) => mode != ThemeMode.system).toList();
     final availableSchemes = HighlightScheme.values;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Appearance"),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text("Appearance"), elevation: 0),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -45,9 +41,9 @@ class ThemeSettingsPage extends StatelessWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.primary,
+      ),
     );
   }
 
@@ -59,29 +55,29 @@ class ThemeSettingsPage extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: modes.map((mode) {
-        final isSelected = themeProvider.themeMode == mode;
-        return ChoiceChip(
-          label: Text(
-            _formatModeName(mode.toString()),
-            style: TextStyle(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).textTheme.bodyLarge?.color,
-            ),
-          ),
-          selected: isSelected,
-          onSelected: (_) => themeProvider.setThemeMode(mode),
-          selectedColor: Theme.of(context).colorScheme.primary,
-          backgroundColor: Theme.of(context).cardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: Theme.of(context).dividerColor,
-            ),
-          ),
-        );
-      }).toList(),
+      children:
+          modes.map((mode) {
+            final isSelected = themeProvider.themeMode == mode;
+            return ChoiceChip(
+              label: Text(
+                _formatModeName(mode.toString()),
+                style: TextStyle(
+                  color:
+                      isSelected
+                          ? Theme.of(context).colorScheme.onPrimary
+                          : Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (_) => themeProvider.setThemeMode(mode),
+              selectedColor: Theme.of(context).colorScheme.primary,
+              backgroundColor: Theme.of(context).cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+            );
+          }).toList(),
     );
   }
 
@@ -97,9 +93,10 @@ class ThemeSettingsPage extends StatelessWidget {
       childAspectRatio: 0.8,
       crossAxisSpacing: 16,
       mainAxisSpacing: 16,
-      children: schemes.map((scheme) {
-        return _buildSchemeCard(scheme, themeProvider, context);
-      }).toList(),
+      children:
+          schemes.map((scheme) {
+            return _buildSchemeCard(scheme, themeProvider, context);
+          }).toList(),
     );
   }
 
@@ -118,24 +115,20 @@ class ThemeSettingsPage extends StatelessWidget {
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: isSelected
-              ? Border.all(
-                  color: color,
-                  width: 2,
-                )
-              : Border.all(
-                  color: Theme.of(context).dividerColor,
-                  width: 1,
-                ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.2),
-                    blurRadius: 8,
-                    spreadRadius: 2,
-                  )
-                ]
-              : null,
+          border:
+              isSelected
+                  ? Border.all(color: color, width: 2)
+                  : Border.all(color: Theme.of(context).dividerColor, width: 1),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      spreadRadius: 2,
+                    ),
+                  ]
+                  : null,
         ),
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -149,9 +142,9 @@ class ThemeSettingsPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               _formatSchemeName(scheme.name),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -185,7 +178,8 @@ class ThemeSettingsPage extends StatelessWidget {
         .splitMapJoin(
           RegExp(r'[A-Z]'),
           onMatch: (m) => " ${m.group(0)}",
-          onNonMatch: (n) => n.isNotEmpty ? n[0].toUpperCase() + n.substring(1) : '',
+          onNonMatch:
+              (n) => n.isNotEmpty ? n[0].toUpperCase() + n.substring(1) : '',
         )
         .trim();
   }

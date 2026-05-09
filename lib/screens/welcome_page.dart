@@ -4,33 +4,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
 
-
-
-
-  void continueAsGuest(BuildContext context) async{
+  void continueAsGuest(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isGuest', true);
+    await prefs.setBool('isLoggedIn', false);
+    if (!context.mounted) return;
     Navigator.pushReplacementNamed(context, '/translate');
   }
 
   @override
-Widget build(BuildContext context) {
-  print('WelcomePage loaded');
-  return Scaffold(
-    body: Stack(
-      children: [
-        // Background with opacity
-        Opacity(
-          opacity: 0.1, // Adjust opacity here
-          child: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/Welcome_background.jpg'),
-                fit: BoxFit.cover,
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Background with opacity
+          Opacity(
+            opacity: 0.1, // Adjust opacity here
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/Welcome_background.jpg'),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
           ),
-        ),
           // Foreground content
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -50,7 +48,6 @@ Widget build(BuildContext context) {
                 children: [
                   ElevatedButton(
                     onPressed: () {
-                      print('Navigating to SignupPage');
                       Navigator.pushNamed(context, '/signup');
                     },
                     child: Text("Sign Up"),

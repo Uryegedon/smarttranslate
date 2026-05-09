@@ -4,7 +4,8 @@ class LanguagePreferencesScreen extends StatefulWidget {
   const LanguagePreferencesScreen({super.key});
 
   @override
-  State<LanguagePreferencesScreen> createState() => _LanguagePreferencesScreenState();
+  State<LanguagePreferencesScreen> createState() =>
+      _LanguagePreferencesScreenState();
 }
 
 class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
@@ -21,7 +22,6 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-          
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -35,18 +35,14 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                   const SizedBox(width: 12),
                   const Text(
                     'Language and Preferences',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
 
             const Divider(thickness: 1, color: Colors.black),
 
-            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
@@ -63,12 +59,13 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                       DropdownButton<String>(
                         value: _selectedLanguage,
                         underline: const SizedBox(),
-                        items: _languages.map((String language) {
-                          return DropdownMenuItem<String>(
-                            value: language,
-                            child: Text(language),
-                          );
-                        }).toList(),
+                        items:
+                            _languages.map((String language) {
+                              return DropdownMenuItem<String>(
+                                value: language,
+                                child: Text(language),
+                              );
+                            }).toList(),
                         onChanged: (String? newValue) {
                           setState(() {
                             _selectedLanguage = newValue!;
@@ -92,7 +89,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                             _soundEffectsEnabled = value;
                           });
                         },
-                        activeColor: Colors.green,
+                        activeThumbColor: Colors.green,
                       ),
                     ],
                   ),
