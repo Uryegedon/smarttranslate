@@ -7,8 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'themeawarewidget.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
-class CameraOcrPage extends StatefulWidget {
+class CameraScreen extends StatefulWidget {
   const CameraOcrPage({super.key});
 
   @override
@@ -366,25 +367,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
                 ),
               ],
             ),
-      bottomNavigationBar: ModernBottomNav(
-        currentIndex: 1,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/translate');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/camera');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/minigames');
-              break;
-            case 3:
-              Navigator.pushReplacementNamed(context, '/profile');
-              break;
-          }
-        },
-      ),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.camera),
     );
   }
 

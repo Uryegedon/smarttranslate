@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:clipboard/clipboard.dart';
 import 'translationservice.dart';
 import 'themeawarewidget.dart';
+import '../services/language_algorithms.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class TranslatorScreen extends StatefulWidget {
   const TranslatorScreen({super.key});
@@ -14,6 +16,8 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
   final TextEditingController _inputController = TextEditingController();
   String _translatedText = "";
   List<String> _alternativeTranslations = [];
+  List<String> _autocompleteSuggestions = [];
+  String? _typoSuggestion;
   String _sourceLanguage = 'English';
   String _targetLanguage = 'Spanish';
   final List<String> _availableLanguages = ['English', 'Spanish', 'Filipino'];
@@ -36,10 +40,27 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
   }
 
   void _translate(String text) async {
+    _updateWritingAssistance(text);
+
     if (text.isNotEmpty) {
       try {
-        String translated = await translateText(text, _sourceLanguage, _targetLanguage);
-        List<String> alternatives = await fetchAlternativeTranslations(translated);
+        final localTranslation = LanguageAlgorithms.findDirectTranslation(
+          text: text,
+          sourceLanguage: _sourceLanguage,
+          targetLanguage: _targetLanguage,
+        );
+
+        String translated =
+            localTranslation ??
+            await translateText(text, _sourceLanguage, _targetLanguage);
+
+        List<String> alternatives =
+            LanguageAlgorithms.rankAlternativeTranslations(
+              originalText: text,
+              translatedText: translated,
+              sourceLanguage: _sourceLanguage,
+              targetLanguage: _targetLanguage,
+            );
 
         setState(() {
           _translatedText = translated;
@@ -55,17 +76,45 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       setState(() {
         _translatedText = "";
         _alternativeTranslations = [];
+        _autocompleteSuggestions = [];
+        _typoSuggestion = null;
       });
     }
   }
 
-  Future<List<String>> fetchAlternativeTranslations(String text) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return [
-      "$text (Alternative 1)",
-      "$text (Alternative 2)",
-      "$text (Alternative 3)",
-    ];
+  void _updateWritingAssistance(String text) {
+    final activeWord = _activeWordFrom(text);
+
+    setState(() {
+      _autocompleteSuggestions = LanguageAlgorithms.autocomplete(
+        prefix: activeWord,
+        language: _sourceLanguage,
+      );
+      _typoSuggestion = LanguageAlgorithms.suggestCorrection(
+        word: activeWord,
+        language: _sourceLanguage,
+      );
+    });
+  }
+
+  String _activeWordFrom(String text) {
+    final words = text.trimRight().split(RegExp(r'\s+'));
+    return words.isEmpty ? '' : words.last;
+  }
+
+  void _replaceActiveWord(String replacement) {
+    final currentText = _inputController.text.trimRight();
+    final lastSpace = currentText.lastIndexOf(RegExp(r'\s'));
+    final newText =
+        lastSpace == -1
+            ? replacement
+            : '${currentText.substring(0, lastSpace + 1)}$replacement';
+
+    _inputController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
+    );
+    _translate(newText);
   }
 
   void _onSourceLanguageChanged(String? newValue) {
@@ -73,6 +122,7 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       setState(() {
         _sourceLanguage = newValue;
       });
+      _updateWritingAssistance(_inputController.text);
       if (_inputController.text.isNotEmpty) {
         _translate(_inputController.text);
       }
@@ -212,9 +262,20 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
             ),
           ),
 
+          if (_typoSuggestion != null || _autocompleteSuggestions.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _buildWritingAssistancePanel(theme),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 10),
 
-          // ── Output card (fills ~40% of remaining height) ──
+          // ── Output card ──
           Expanded(
             flex: 5,
             child: Padding(
@@ -332,9 +393,98 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
           const SizedBox(height: 12),
         ],
       ),
-      bottomNavigationBar: ModernBottomNav(
-        currentIndex: 0,
-        onTap: (index) => _onItemTapped(context, index),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.translate),
+    );
+  }
+
+  Widget _buildWritingAssistancePanel(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_typoSuggestion != null) ...[
+              Row(
+                children: [
+                  Icon(Icons.auto_fix_high_rounded, color: theme.colorScheme.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Did you mean "$_typoSuggestion"?',
+                      style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _replaceActiveWord(_typoSuggestion!),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Use',
+                        style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_autocompleteSuggestions.isNotEmpty) Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Divider(color: theme.dividerColor, height: 1),
+              ),
+            ],
+            if (_autocompleteSuggestions.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(Icons.manage_search_rounded, color: theme.colorScheme.secondary, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Suggestions',
+                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _autocompleteSuggestions.map((suggestion) {
+                  return GestureDetector(
+                    onTap: () => _replaceActiveWord(suggestion),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        border: Border.all(color: theme.dividerColor),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        suggestion,
+                        style: TextStyle(color: theme.hintColor, fontSize: 12),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

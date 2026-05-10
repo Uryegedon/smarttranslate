@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'themeawarewidget.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -204,17 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: ModernBottomNav(
-        currentIndex: 3,
-        onTap: (index) {
-          switch (index) {
-            case 0: Navigator.pushReplacementNamed(context, '/translate'); break;
-            case 1: Navigator.pushReplacementNamed(context, '/camera'); break;
-            case 2: Navigator.pushReplacementNamed(context, '/minigames'); break;
-            case 3: Navigator.pushReplacementNamed(context, '/profile'); break;
-          }
-        },
-      ),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.profile),
     );
   }
 

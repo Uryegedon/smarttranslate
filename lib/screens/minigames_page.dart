@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'themeawarewidget.dart';
+import '../widgets/app_bottom_nav_bar.dart';
 
 class GameSelectionScreen extends StatelessWidget {
   const GameSelectionScreen({super.key});
@@ -122,17 +123,7 @@ class GameSelectionScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: ModernBottomNav(
-        currentIndex: 2,
-        onTap: (index) {
-          switch (index) {
-            case 0: Navigator.pushReplacementNamed(context, '/translate'); break;
-            case 1: Navigator.pushReplacementNamed(context, '/camera'); break;
-            case 2: Navigator.pushReplacementNamed(context, '/minigames'); break;
-            case 3: Navigator.pushReplacementNamed(context, '/profile'); break;
-          }
-        },
-      ),
+      bottomNavigationBar: const AppBottomNavBar(currentTab: AppTab.minigames),
     );
   }
 
