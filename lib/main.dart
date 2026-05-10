@@ -13,7 +13,14 @@ Future<void> clearSharedPreferences() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrint(
+      'If you are running on Web/Windows, you need to run `flutterfire configure` and pass options.',
+    );
+  }
 
   // Comment out for production - only for debugging
   // await clearSharedPreferences();
