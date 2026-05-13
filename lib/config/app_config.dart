@@ -2,7 +2,7 @@ class AppConfig {
   const AppConfig._();
 
   static const defaultTranslationApiUrl =
-      'http://100.119.152.32:8000/translate/';
+      'https://smarttranslate.onrender.com/translate/';
 
   static const translationApiUrl = String.fromEnvironment(
     'TRANSLATION_API_URL',

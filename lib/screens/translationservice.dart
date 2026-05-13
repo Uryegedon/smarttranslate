@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 import '../services/device_translation_service.dart';
 
-const Duration _translationTimeout = Duration(seconds: 12);
+const Duration _translationTimeout = Duration(seconds: 45);
 final http.Client _translationClient = http.Client();
 
 class TranslationBatchItem {

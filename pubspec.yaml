@@ -79,5 +79,4 @@ flutter:
 
   assets:
     - assets/Welcome_background.jpg
-    - assets/tessdata_config.json
     - assets/tessdata/
