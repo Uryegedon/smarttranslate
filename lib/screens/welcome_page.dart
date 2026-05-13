@@ -115,7 +115,7 @@ class WelcomePage extends StatelessWidget {
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                "SmartPath Translator",
+                                "Lingualink",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: size.width * 0.085,

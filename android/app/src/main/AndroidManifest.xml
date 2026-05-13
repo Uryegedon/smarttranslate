@@ -23,7 +23,7 @@
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
     <application
-        android:label="smarttranslate_app"
+        android:label="Lingualink"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="${usesCleartextTraffic}">

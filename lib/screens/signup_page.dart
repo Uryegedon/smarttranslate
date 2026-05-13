@@ -51,10 +51,10 @@ class _SignupPageState extends State<SignupPage> {
                 child: Text('''
 Acceptance of Terms
 
-By downloading, accessing, or using Smart Translate, you agree to be bound by these Terms. If you do not agree, please do not use the App.
+By downloading, accessing, or using Lingualink, you agree to be bound by these Terms. If you do not agree, please do not use the App.
 
 Use of the App
-You agree to use Smart Translate only for lawful and appropriate purposes. You must not:
+You agree to use Lingualink only for lawful and appropriate purposes. You must not:
 • Use the App in any way that violates any applicable local, national, or international law or regulation.
 • Attempt to gain unauthorized access to any part of the App, server, or connected systems.
 • Reverse engineer, decompile, or disassemble any part of the App.
@@ -64,7 +64,7 @@ User Accounts
 To access certain features, you may be required to create an account. You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account.
 
 Intellectual Property
-All content, features, and functionality of Smart Translate are the property of Smart Path Solutions or its licensors. You may not reproduce, distribute, or create derivative works without our permission.
+All content, features, and functionality of Lingualink are the property of Smart Path Solutions or its licensors. You may not reproduce, distribute, or create derivative works without our permission.
 
 Limitation of Liability
 To the fullest extent permitted by law, Smart Path Solutions shall not be liable for any indirect, incidental, special, or consequential damages resulting from your use of or inability to use the App.
@@ -81,7 +81,7 @@ These Terms are governed by the applicable laws in your place of residence, unle
 Privacy Policy
 Effective Date: May 10, 2026
 
-This Privacy Policy describes how Smart Translate collects, uses, and protects your personal information.
+This Privacy Policy describes how Lingualink collects, uses, and protects your personal information.
 
 Information We Collect:
 • Personal Information: Name, email address, login credentials.
@@ -106,7 +106,7 @@ Your Rights and Choices:
 • Contact us at Smartpathsolutions@gmail.com for data or privacy concerns.
 
 Children's Privacy:
-Smart Translate is not intended for children under 13. We do not knowingly collect personal data from children.
+Lingualink is not intended for children under 13. We do not knowingly collect personal data from children.
 
 Changes to Policy:
 We may update this policy periodically.
@@ -180,7 +180,7 @@ Smart Path Solutions
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Join SmartPath and start translating",
+                  "Join Lingualink and start translating",
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.hintColor,
                     fontSize: 16,

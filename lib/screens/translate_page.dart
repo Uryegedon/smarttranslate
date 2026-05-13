@@ -700,7 +700,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
       appBar: ThemeAwareAppBar(
         leading: const SizedBox(),
         title: ThemeAwareText(
-          'SmartPath Translator',
+          'Lingualink',
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 20,

@@ -99,7 +99,7 @@ class _SmartTranslateAppState extends State<SmartTranslateApp> {
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return MaterialApp(
-              title: 'SmartPath Translator',
+              title: 'Lingualink',
               debugShowCheckedModeBanner: false,
               themeMode: themeProvider.themeMode,
               theme: themeProvider.lightTheme,

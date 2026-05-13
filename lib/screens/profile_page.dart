@@ -380,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: const Text('Help and Support'),
           content: const Text(
             'For translation issues, check your internet connection and try again. '
-            'For account or app support, contact SmartPath support at Smartpathsolutions@gmail.com.',
+            'For account or app support, contact Lingualink support at Smartpathsolutions@gmail.com.',
           ),
           actions: [
             TextButton(
@@ -400,7 +400,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return AlertDialog(
           title: const Text('Privacy Settings'),
           content: const Text(
-            'SmartPath stores your sign-in state and app preferences on this device. '
+            'Lingualink stores your sign-in state and app preferences on this device. '
             'Camera and gallery images are used only for OCR processing during the current action.',
           ),
           actions: [
