@@ -28,20 +28,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final bool isGuest = prefs.getBool('isGuest') ?? false;
 
       if (isGuest) {
-        setState(() { username = 'Guest User'; isLoading = false; });
+        if (!mounted) return;
+        setState(() {
+          username = 'Guest User';
+          isLoading = false;
+        });
         return;
       }
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final doc = await FirebaseFirestore.instance
-            .collection('users').doc(user.uid).get();
-        setState(() { username = doc['username']; isLoading = false; });
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+        final data = doc.data();
+        if (!mounted) return;
+        setState(() {
+          username = data?['username'] as String? ?? 'Unknown User';
+          isLoading = false;
+        });
       } else {
-        setState(() { username = 'Unknown User'; isLoading = false; });
+        if (!mounted) return;
+        setState(() {
+          username = 'Unknown User';
+          isLoading = false;
+        });
       }
     } catch (e) {
-      setState(() { username = 'Unknown User'; isLoading = false; });
+      if (!mounted) return;
+      setState(() {
+        username = 'Unknown User';
+        isLoading = false;
+      });
     }
   }
 
@@ -49,7 +69,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final screenHeight = MediaQuery.of(context).size.height;
 
     return ThemeAwareScaffold(
       body: Column(
@@ -95,9 +114,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: Colors.white.withOpacity(0.35), width: 2),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.35),
+                          width: 2,
+                        ),
                       ),
-                      child: const Icon(Icons.person_rounded, color: Colors.white, size: 34),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        color: Colors.white,
+                        size: 34,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -105,7 +131,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isLoading ? 'Loading...' : (username ?? 'Unknown User'),
+                            isLoading
+                                ? 'Loading...'
+                                : (username ?? 'Unknown User'),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -120,13 +148,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                username == 'Guest User' ? 'Log in →' : 'Signed in ✓',
+                                username == 'Guest User'
+                                    ? 'Log in →'
+                                    : 'Signed in ✓',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
@@ -154,31 +187,64 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _sectionLabel('General', theme),
                   const SizedBox(height: 10),
                   _settingsCard(theme, [
-                    _tile(Icons.language_rounded, 'Language Preferences', theme,
-                        () => Navigator.pushNamed(context, '/langpref')),
+                    _tile(
+                      Icons.language_rounded,
+                      'Language Preferences',
+                      theme,
+                      () => Navigator.pushNamed(context, '/langpref'),
+                    ),
                     _divider(theme),
-                    _tile(Icons.camera_alt_rounded, 'OCR Settings', theme,
-                        () => Navigator.pushNamed(context, '/ocrsettings')),
+                    _tile(
+                      Icons.cloud_download_rounded,
+                      'Offline Downloads',
+                      theme,
+                      () => Navigator.pushNamed(context, '/offlinedownloads'),
+                    ),
                     _divider(theme),
-                    _tile(Icons.volume_up_rounded, 'Sound & Notifications', theme,
-                        () => Navigator.pushNamed(context, '/soundandnotif')),
+                    _tile(
+                      Icons.camera_alt_rounded,
+                      'OCR Settings',
+                      theme,
+                      () => Navigator.pushNamed(context, '/ocrsettings'),
+                    ),
+                    _divider(theme),
+                    _tile(
+                      Icons.volume_up_rounded,
+                      'Sound & Notifications',
+                      theme,
+                      () => Navigator.pushNamed(context, '/soundandnotif'),
+                    ),
                   ]),
 
                   const SizedBox(height: 24),
                   _sectionLabel('Appearance', theme),
                   const SizedBox(height: 10),
                   _settingsCard(theme, [
-                    _tile(Icons.palette_rounded, 'Theme Settings', theme,
-                        () => Navigator.pushNamed(context, '/themesettings')),
+                    _tile(
+                      Icons.palette_rounded,
+                      'Theme Settings',
+                      theme,
+                      () => Navigator.pushNamed(context, '/themesettings'),
+                    ),
                   ]),
 
                   const SizedBox(height: 24),
                   _sectionLabel('Support', theme),
                   const SizedBox(height: 10),
                   _settingsCard(theme, [
-                    _tile(Icons.help_outline_rounded, 'Help and Support', theme, () {}),
+                    _tile(
+                      Icons.help_outline_rounded,
+                      'Help and Support',
+                      theme,
+                      () => _showSupportDialog(context),
+                    ),
                     _divider(theme),
-                    _tile(Icons.shield_outlined, 'Privacy Settings', theme, () {}),
+                    _tile(
+                      Icons.shield_outlined,
+                      'Privacy Settings',
+                      theme,
+                      () => _showPrivacyDialog(context),
+                    ),
                   ]),
 
                   const SizedBox(height: 24),
@@ -191,7 +257,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         FirebaseAuth.instance.signOut().then((_) async {
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.clear();
-                          Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+                          if (!mounted || !context.mounted) return;
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/',
+                            (r) => false,
+                          );
                         });
                       },
                       iconColor: theme.colorScheme.error,
@@ -281,7 +352,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               if (showChevron)
-                Icon(Icons.chevron_right_rounded, size: 22, color: theme.hintColor.withOpacity(0.5)),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: theme.hintColor.withOpacity(0.5),
+                ),
             ],
           ),
         ),
@@ -293,6 +368,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Divider(height: 1, color: theme.dividerColor),
+    );
+  }
+
+  void _showSupportDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Help and Support'),
+          content: const Text(
+            'For translation issues, check your internet connection and try again. '
+            'For account or app support, contact SmartPath support at Smartpathsolutions@gmail.com.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPrivacyDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Privacy Settings'),
+          content: const Text(
+            'SmartPath stores your sign-in state and app preferences on this device. '
+            'Camera and gallery images are used only for OCR processing during the current action.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

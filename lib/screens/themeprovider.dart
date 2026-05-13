@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum HighlightScheme {
-  defaultScheme,
-  greenApple,
-  lavender,
-  roseGold,
-  ocean,
-}
+enum HighlightScheme { defaultScheme, greenApple, lavender, roseGold, ocean }
 
 class ThemeProvider with ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
   HighlightScheme _highlightScheme = HighlightScheme.defaultScheme;
+  ThemeData? _cachedLightTheme;
+  ThemeData? _cachedDarkTheme;
 
   ThemeMode get themeMode => _themeMode;
   HighlightScheme get highlightScheme => _highlightScheme;
@@ -19,7 +15,7 @@ class ThemeProvider with ChangeNotifier {
   Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load theme mode
       final themeModeIndex = prefs.getInt('themeMode') ?? ThemeMode.light.index;
       _themeMode = ThemeMode.values.firstWhere(
@@ -28,13 +24,18 @@ class ThemeProvider with ChangeNotifier {
       );
 
       // Load highlight scheme
-      final highlightSchemeIndex = prefs.getInt('highlightScheme') ?? HighlightScheme.defaultScheme.index;
+      final highlightSchemeIndex =
+          prefs.getInt('highlightScheme') ??
+          HighlightScheme.defaultScheme.index;
       _highlightScheme = HighlightScheme.values.firstWhere(
         (scheme) => scheme.index == highlightSchemeIndex,
         orElse: () => HighlightScheme.defaultScheme,
       );
+      _clearThemeCache();
 
-      debugPrint("Theme initialized - Mode: $_themeMode, Scheme: $_highlightScheme");
+      debugPrint(
+        "Theme initialized - Mode: $_themeMode, Scheme: $_highlightScheme",
+      );
     } catch (e) {
       debugPrint("Error initializing theme: $e");
       _themeMode = ThemeMode.light;
@@ -45,12 +46,13 @@ class ThemeProvider with ChangeNotifier {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     if (_themeMode == mode) return;
-    
+
     _themeMode = mode;
+    notifyListeners();
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('themeMode', mode.index);
-      notifyListeners();
     } catch (e) {
       debugPrint("Error saving theme mode: $e");
     }
@@ -58,29 +60,56 @@ class ThemeProvider with ChangeNotifier {
 
   Future<void> setHighlightScheme(HighlightScheme scheme) async {
     if (_highlightScheme == scheme) return;
-    
+
     _highlightScheme = scheme;
+    _clearThemeCache();
+    notifyListeners();
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('highlightScheme', scheme.index);
-      notifyListeners();
     } catch (e) {
       debugPrint("Error saving highlight scheme: $e");
     }
   }
 
+  void _clearThemeCache() {
+    _cachedLightTheme = null;
+    _cachedDarkTheme = null;
+  }
+
   // ─── Shared text theme ───
   TextTheme get _textTheme => const TextTheme(
-    headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
-    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+    headlineLarge: TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.5,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.3,
+    ),
     headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
     titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
     titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
     titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-    bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5),
-    bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5),
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w400,
+      height: 1.5,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      height: 1.5,
+    ),
     bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-    labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+    labelLarge: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.3,
+    ),
     labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
     labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
   );
@@ -100,26 +129,38 @@ class ThemeProvider with ChangeNotifier {
 
   Color get primaryColor {
     switch (_highlightScheme) {
-      case HighlightScheme.greenApple: return _greenApplePrimary;
-      case HighlightScheme.lavender:   return _lavenderPrimary;
-      case HighlightScheme.roseGold:   return _rosePrimary;
-      case HighlightScheme.ocean:      return _oceanPrimary;
-      default:                         return _defaultPrimary;
+      case HighlightScheme.greenApple:
+        return _greenApplePrimary;
+      case HighlightScheme.lavender:
+        return _lavenderPrimary;
+      case HighlightScheme.roseGold:
+        return _rosePrimary;
+      case HighlightScheme.ocean:
+        return _oceanPrimary;
+      default:
+        return _defaultPrimary;
     }
   }
 
   Color get primaryLightColor {
     switch (_highlightScheme) {
-      case HighlightScheme.greenApple: return _greenAppleLight;
-      case HighlightScheme.lavender:   return _lavenderLight;
-      case HighlightScheme.roseGold:   return _roseLight;
-      case HighlightScheme.ocean:      return _oceanLight;
-      default:                         return _defaultPrimaryLight;
+      case HighlightScheme.greenApple:
+        return _greenAppleLight;
+      case HighlightScheme.lavender:
+        return _lavenderLight;
+      case HighlightScheme.roseGold:
+        return _roseLight;
+      case HighlightScheme.ocean:
+        return _oceanLight;
+      default:
+        return _defaultPrimaryLight;
     }
   }
 
   // ─── LIGHT THEME ───
-  ThemeData get lightTheme {
+  ThemeData get lightTheme => _cachedLightTheme ??= _buildLightTheme();
+
+  ThemeData _buildLightTheme() {
     Color primary;
     Color primaryLight;
 
@@ -197,7 +238,10 @@ class ThemeProvider with ChangeNotifier {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFFF1F5F9),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -220,7 +264,9 @@ class ThemeProvider with ChangeNotifier {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -229,7 +275,9 @@ class ThemeProvider with ChangeNotifier {
           foregroundColor: primary,
           side: BorderSide(color: primary, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -245,7 +293,9 @@ class ThemeProvider with ChangeNotifier {
           return const Color(0xFFCBD5E1);
         }),
         trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) return primary.withOpacity(0.3);
+          if (states.contains(MaterialState.selected)) {
+            return primary.withOpacity(0.3);
+          }
           return const Color(0xFFE2E8F0);
         }),
       ),
@@ -299,7 +349,9 @@ class ThemeProvider with ChangeNotifier {
   }
 
   // ─── DARK THEME ───
-  ThemeData get darkTheme {
+  ThemeData get darkTheme => _cachedDarkTheme ??= _buildDarkTheme();
+
+  ThemeData _buildDarkTheme() {
     Color primary;
     Color primaryLight;
 
@@ -376,7 +428,10 @@ class ThemeProvider with ChangeNotifier {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF334155),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -399,7 +454,9 @@ class ThemeProvider with ChangeNotifier {
           foregroundColor: const Color(0xFF0F172A),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
@@ -408,7 +465,9 @@ class ThemeProvider with ChangeNotifier {
           foregroundColor: primary,
           side: BorderSide(color: primary, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
       switchTheme: SwitchThemeData(
@@ -417,7 +476,9 @@ class ThemeProvider with ChangeNotifier {
           return const Color(0xFF64748B);
         }),
         trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) return primary.withOpacity(0.3);
+          if (states.contains(MaterialState.selected)) {
+            return primary.withOpacity(0.3);
+          }
           return const Color(0xFF334155);
         }),
       ),
@@ -442,7 +503,10 @@ class ThemeProvider with ChangeNotifier {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: const Color(0xFF334155),
-        contentTextStyle: const TextStyle(color: Color(0xFFF1F5F9), fontSize: 14),
+        contentTextStyle: const TextStyle(
+          color: Color(0xFFF1F5F9),
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),

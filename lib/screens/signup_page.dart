@@ -19,26 +19,35 @@ class _SignupPageState extends State<SignupPage> {
   bool _agreedToTerms = false;
   bool _obscurePassword = true;
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _usernameController.dispose();
+    super.dispose();
+  }
+
   Future<bool> _isUsernameUnique(String username) async {
     final firestore = FirebaseFirestore.instance;
-    final querySnapshot = await firestore
-        .collection('users')
-        .where('username', isEqualTo: username)
-        .get();
+    final querySnapshot =
+        await firestore
+            .collection('users')
+            .where('username', isEqualTo: username)
+            .get();
     return querySnapshot.docs.isEmpty;
   }
 
   void _showTermsDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Terms and Privacy Policy'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: SingleChildScrollView(
-            child: Text(
-              '''
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Terms and Privacy Policy'),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: SingleChildScrollView(
+                child: Text('''
 Acceptance of Terms
 
 By downloading, accessing, or using Smart Translate, you agree to be bound by these Terms. If you do not agree, please do not use the App.
@@ -66,10 +75,10 @@ Termination
 We may suspend or terminate your access to the App at any time for conduct that violates these Terms or is harmful to other users or the Company.
 
 Governing Law
-These Terms are governed by and construed in accordance with the laws of [Your Country/State].
+These Terms are governed by the applicable laws in your place of residence, unless a different governing law is required by local regulation.
 
 Privacy Policy
-Effective Date: [Insert Date]
+Effective Date: May 10, 2026
 
 This Privacy Policy describes how Smart Translate collects, uses, and protects your personal information.
 
@@ -104,18 +113,16 @@ We may update this policy periodically.
 Contact Us:
 Smartpathsolutions@gmail.com
 Smart Path Solutions
-''',
-              style: const TextStyle(fontSize: 14),
+''', style: const TextStyle(fontSize: 14)),
+              ),
             ),
+            actions: [
+              TextButton(
+                child: const Text('Close'),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            child: const Text('Close'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
     );
   }
 
@@ -151,7 +158,10 @@ Smart Path Solutions
                         ),
                       ],
                     ),
-                    child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
 
@@ -254,9 +264,14 @@ Smart Path Solutions
                           prefixIcon: const Icon(Icons.lock_outline_rounded),
                           hintText: 'Create a password',
                           suffixIcon: GestureDetector(
-                            onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onTap:
+                                () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
                             child: Icon(
-                              _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                              _obscurePassword
+                                  ? Icons.visibility_off_rounded
+                                  : Icons.visibility_rounded,
                               color: theme.hintColor,
                             ),
                           ),
@@ -293,7 +308,8 @@ Smart Path Solutions
                                 text: TextSpan(
                                   text: 'I agree to the ',
                                   style: TextStyle(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.7),
                                     fontSize: 14,
                                   ),
                                   children: [
@@ -320,70 +336,115 @@ Smart Path Solutions
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : () async {
-                            if (!_formKey.currentState!.validate()) return;
-                            if (!_agreedToTerms) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('You must agree to the terms')),
-                              );
-                              return;
-                            }
+                          onPressed:
+                              _isLoading
+                                  ? null
+                                  : () async {
+                                    if (!_formKey.currentState!.validate()) {
+                                      return;
+                                    }
+                                    if (!_agreedToTerms) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'You must agree to the terms',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                            final username = _usernameController.text.trim();
-                            final email = _emailController.text.trim();
-                            final password = _passwordController.text.trim();
+                                    final username =
+                                        _usernameController.text.trim();
+                                    final email = _emailController.text.trim();
+                                    final password =
+                                        _passwordController.text.trim();
 
-                            setState(() => _isLoading = true);
+                                    setState(() => _isLoading = true);
 
-                            final isUnique = await _isUsernameUnique(username);
-                            if (!isUnique) {
-                              setState(() => _isLoading = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Username is already taken.')),
-                              );
-                              return;
-                            }
+                                    final isUnique = await _isUsernameUnique(
+                                      username,
+                                    );
+                                    if (!mounted || !context.mounted) return;
+                                    if (!isUnique) {
+                                      setState(() => _isLoading = false);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Username is already taken.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                            try {
-                              final userCredential = await FirebaseAuth.instance
-                                  .createUserWithEmailAndPassword(email: email, password: password);
+                                    try {
+                                      final userCredential = await FirebaseAuth
+                                          .instance
+                                          .createUserWithEmailAndPassword(
+                                            email: email,
+                                            password: password,
+                                          );
 
-                              await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(userCredential.user?.uid)
-                                  .set({
-                                'username': username,
-                                'email': email,
-                                'createdAt': FieldValue.serverTimestamp(),
-                              });
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(userCredential.user?.uid)
+                                          .set({
+                                            'username': username,
+                                            'email': email,
+                                            'createdAt':
+                                                FieldValue.serverTimestamp(),
+                                          });
 
-                              Navigator.pushReplacementNamed(context, '/');
-                            } on FirebaseAuthException catch (e) {
-                              String errorMessage;
-                              if (e.code == 'email-already-in-use') {
-                                errorMessage = 'This email is already in use.';
-                              } else if (e.code == 'weak-password') {
-                                errorMessage = 'The password is too weak.';
-                              } else {
-                                errorMessage = 'An error occurred. Please try again.';
-                              }
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(errorMessage)),
-                              );
-                            } finally {
-                              setState(() => _isLoading = false);
-                            }
-                          },
-                          child: _isLoading
-                              ? SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      if (!mounted || !context.mounted) return;
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        '/',
+                                      );
+                                    } on FirebaseAuthException catch (e) {
+                                      String errorMessage;
+                                      if (e.code == 'email-already-in-use') {
+                                        errorMessage =
+                                            'This email is already in use.';
+                                      } else if (e.code == 'weak-password') {
+                                        errorMessage =
+                                            'The password is too weak.';
+                                      } else {
+                                        errorMessage =
+                                            'An error occurred. Please try again.';
+                                      }
+                                      if (!mounted || !context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text(errorMessage)),
+                                      );
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => _isLoading = false);
+                                      }
+                                    }
+                                  },
+                          child:
+                              _isLoading
+                                  ? SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                  : const Text(
+                                    'Sign Up',
+                                    style: TextStyle(fontSize: 16),
                                   ),
-                                )
-                              : const Text('Sign Up', style: TextStyle(fontSize: 16)),
                         ),
                       ),
 

@@ -36,8 +36,21 @@ void main() async {
   );
 }
 
-class SmartTranslateApp extends StatelessWidget {
+class SmartTranslateApp extends StatefulWidget {
   const SmartTranslateApp({super.key});
+
+  @override
+  State<SmartTranslateApp> createState() => _SmartTranslateAppState();
+}
+
+class _SmartTranslateAppState extends State<SmartTranslateApp> {
+  late final Future<String> _initialRouteFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialRouteFuture = _getInitialRoute();
+  }
 
   Future<String> _getInitialRoute() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,7 +66,7 @@ class SmartTranslateApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: _getInitialRoute(),
+      future: _initialRouteFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return MaterialApp(
@@ -83,6 +96,8 @@ class SmartTranslateApp extends StatelessWidget {
               themeMode: themeProvider.themeMode,
               theme: themeProvider.lightTheme,
               darkTheme: themeProvider.darkTheme,
+              themeAnimationDuration: const Duration(milliseconds: 120),
+              themeAnimationCurve: Curves.easeOut,
               initialRoute: snapshot.data,
               routes: {
                 '/': (context) => const WelcomePage(),
@@ -94,12 +109,13 @@ class SmartTranslateApp extends StatelessWidget {
                 '/soundandnotif': (context) => SoundNotificationPage(),
                 '/langpref': (context) => LanguagePreferencesScreen(),
                 '/wordmatching': (context) => GuessLanguageScreen(),
+                '/wordscramble': (context) => WordScrambleScreen(),
+                '/flashcards': (context) => FlashCardsScreen(),
+                '/wordmatchingpairs': (context) => WordMatchingScreen(),
                 '/camera': (context) => CameraOcrPage(),
                 '/ocrsettings': (context) => OcrSettingsPage(),
                 '/themesettings': (context) => ThemeSettingsPage(),
-              },
-              builder: (context, child) {
-                return AnimatedTheme(data: Theme.of(context), child: child!);
+                '/offlinedownloads': (context) => OfflineDownloadsPage(),
               },
             );
           },

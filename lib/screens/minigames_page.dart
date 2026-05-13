@@ -1,9 +1,23 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'themeawarewidget.dart';
+import '../services/game_word_service.dart';
 import '../widgets/app_bottom_nav_bar.dart';
 
-class GameSelectionScreen extends StatelessWidget {
+class GameSelectionScreen extends StatefulWidget {
   const GameSelectionScreen({super.key});
+
+  @override
+  State<GameSelectionScreen> createState() => _GameSelectionScreenState();
+}
+
+class _GameSelectionScreenState extends State<GameSelectionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(GameWordService.loadWords());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +93,7 @@ class GameSelectionScreen extends StatelessWidget {
                     context: context,
                     theme: theme,
                     title: 'Guess the Language',
-                    description: 'Is it English or Filipino?',
+                    description: 'Identify translated words',
                     icon: Icons.quiz_rounded,
                     color: primary,
                     onTap: () => Navigator.pushNamed(context, '/wordmatching'),
@@ -92,8 +106,7 @@ class GameSelectionScreen extends StatelessWidget {
                     description: 'Unscramble translated words',
                     icon: Icons.shuffle_rounded,
                     color: const Color(0xFF7C3AED),
-                    onTap: () {},
-                    isLocked: true,
+                    onTap: () => Navigator.pushNamed(context, '/wordscramble'),
                   ),
                   const SizedBox(height: 14),
                   _buildGameCard(
@@ -103,19 +116,19 @@ class GameSelectionScreen extends StatelessWidget {
                     description: 'Learn vocabulary with flashcards',
                     icon: Icons.style_rounded,
                     color: const Color(0xFFF59E0B),
-                    onTap: () {},
-                    isLocked: true,
+                    onTap: () => Navigator.pushNamed(context, '/flashcards'),
                   ),
                   const SizedBox(height: 14),
                   _buildGameCard(
                     context: context,
                     theme: theme,
-                    title: 'Speed Translate',
-                    description: 'Race against the clock',
-                    icon: Icons.speed_rounded,
+                    title: 'Word Matching',
+                    description: 'Pair words with translations',
+                    icon: Icons.compare_arrows_rounded,
                     color: const Color(0xFFEF4444),
-                    onTap: () {},
-                    isLocked: true,
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/wordmatchingpairs'),
                   ),
                 ],
               ),
@@ -140,7 +153,7 @@ class GameSelectionScreen extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isLocked ? null : onTap,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -180,9 +193,10 @@ class GameSelectionScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: isLocked
-                            ? theme.hintColor.withOpacity(0.5)
-                            : theme.colorScheme.onSurface,
+                        color:
+                            isLocked
+                                ? theme.hintColor.withOpacity(0.5)
+                                : theme.colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -196,9 +210,10 @@ class GameSelectionScreen extends StatelessWidget {
               Icon(
                 isLocked ? Icons.lock_rounded : Icons.arrow_forward_ios_rounded,
                 size: 18,
-                color: isLocked
-                    ? theme.hintColor.withOpacity(0.3)
-                    : theme.hintColor.withOpacity(0.5),
+                color:
+                    isLocked
+                        ? theme.hintColor.withOpacity(0.3)
+                        : theme.hintColor.withOpacity(0.5),
               ),
             ],
           ),

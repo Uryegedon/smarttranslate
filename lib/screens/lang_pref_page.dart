@@ -1,17 +1,38 @@
 import 'package:flutter/material.dart';
+import '../services/settings_service.dart';
 
 class LanguagePreferencesScreen extends StatefulWidget {
   const LanguagePreferencesScreen({super.key});
 
   @override
-  State<LanguagePreferencesScreen> createState() => _LanguagePreferencesScreenState();
+  State<LanguagePreferencesScreen> createState() =>
+      _LanguagePreferencesScreenState();
 }
 
 class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
   String _selectedLanguage = 'English';
+  String _defaultSourceLanguage = SettingsService.defaultSourceLanguage;
+  String _defaultTargetLanguage = SettingsService.defaultTargetLanguage;
   bool _soundEffectsEnabled = true;
 
-  final List<String> _languages = ['English', 'Spanish', 'Filipino'];
+  final List<String> _languages = SettingsService.translatorLanguages;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await SettingsService.load();
+    if (!mounted) return;
+    setState(() {
+      _selectedLanguage = settings.displayLanguage;
+      _defaultSourceLanguage = settings.defaultSourceLanguage;
+      _defaultTargetLanguage = settings.defaultTargetLanguage;
+      _soundEffectsEnabled = settings.soundEffectsEnabled;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +66,10 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                           ),
                         ],
                       ),
-                      child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -82,7 +106,10 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                   children: [
                     // Display Language
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -92,7 +119,11 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                               color: primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.language_rounded, size: 20, color: primary),
+                            child: Icon(
+                              Icons.language_rounded,
+                              size: 20,
+                              color: primary,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -106,7 +137,10 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: primary.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(12),
@@ -120,17 +154,24 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                                   fontWeight: FontWeight.w600,
                                   color: primary,
                                 ),
-                                icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: primary),
-                                items: _languages.map((String language) {
-                                  return DropdownMenuItem<String>(
-                                    value: language,
-                                    child: Text(language),
-                                  );
-                                }).toList(),
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 18,
+                                  color: primary,
+                                ),
+                                items:
+                                    _languages.map((String language) {
+                                      return DropdownMenuItem<String>(
+                                        value: language,
+                                        child: Text(language),
+                                      );
+                                    }).toList(),
                                 onChanged: (String? newValue) {
+                                  if (newValue == null) return;
                                   setState(() {
-                                    _selectedLanguage = newValue!;
+                                    _selectedLanguage = newValue;
                                   });
+                                  SettingsService.saveDisplayLanguage(newValue);
                                 },
                               ),
                             ),
@@ -142,9 +183,48 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Divider(height: 1, color: theme.dividerColor),
                     ),
+                    _languageDropdownRow(
+                      icon: Icons.input_rounded,
+                      label: 'Default Source',
+                      value: _defaultSourceLanguage,
+                      theme: theme,
+                      primary: primary,
+                      onChanged: (newValue) {
+                        if (newValue == null) return;
+                        setState(() {
+                          _defaultSourceLanguage = newValue;
+                        });
+                        SettingsService.saveDefaultSourceLanguage(newValue);
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(height: 1, color: theme.dividerColor),
+                    ),
+                    _languageDropdownRow(
+                      icon: Icons.output_rounded,
+                      label: 'Default Target',
+                      value: _defaultTargetLanguage,
+                      theme: theme,
+                      primary: primary,
+                      onChanged: (newValue) {
+                        if (newValue == null) return;
+                        setState(() {
+                          _defaultTargetLanguage = newValue;
+                        });
+                        SettingsService.saveDefaultTargetLanguage(newValue);
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(height: 1, color: theme.dividerColor),
+                    ),
                     // Sound Effects
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -154,7 +234,11 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                               color: primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.music_note_rounded, size: 20, color: primary),
+                            child: Icon(
+                              Icons.music_note_rounded,
+                              size: 20,
+                              color: primary,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -173,6 +257,7 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
                               setState(() {
                                 _soundEffectsEnabled = value;
                               });
+                              SettingsService.saveSoundEffectsEnabled(value);
                             },
                           ),
                         ],
@@ -184,6 +269,74 @@ class _LanguagePreferencesScreenState extends State<LanguagePreferencesScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _languageDropdownRow({
+    required IconData icon,
+    required String label,
+    required String value,
+    required ThemeData theme,
+    required Color primary,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: primary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: value,
+                isDense: true,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: primary,
+                ),
+                icon: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: primary,
+                ),
+                items:
+                    _languages.map((String language) {
+                      return DropdownMenuItem<String>(
+                        value: language,
+                        child: Text(language),
+                      );
+                    }).toList(),
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

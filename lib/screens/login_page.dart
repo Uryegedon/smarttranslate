@@ -8,7 +8,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -20,104 +20,110 @@ class _LoginScreenState extends State<LoginScreen> {
   // Log out the user if they are already logged in (for testing)
   void logOut() async {
     await FirebaseAuth.instance.signOut();
-    print("User logged out");
+    debugPrint("User logged out");
   }
 
   void login() async {
-  String input = emailController.text.trim(); // This might be an email or username
-  String password = passwordController.text;
+    String input = emailController.text.trim();
+    String password = passwordController.text;
 
-  if (input.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Username/Email and password cannot be empty")),
-    );
-    return;
-  }
+    if (input.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Username/Email and password cannot be empty"),
+        ),
+      );
+      return;
+    }
 
-  setState(() {
-    isLoading = true;
-  });
+    setState(() {
+      isLoading = true;
+    });
 
-  try {
-    String email = input;
+    try {
+      String email = input;
 
-    // 🔍 If input doesn't look like an email, treat it as a username
-    if (!input.contains('@')) {
-      final userQuery = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: input)
-          .limit(1)
-          .get();
+      if (!input.contains('@')) {
+        final userQuery =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .where('username', isEqualTo: input)
+                .limit(1)
+                .get();
 
-      if (userQuery.docs.isEmpty) {
-        throw FirebaseAuthException(
-          code: 'user-not-found',
-          message: 'No user found for that username.',
-        );
+        if (userQuery.docs.isEmpty) {
+          throw FirebaseAuthException(
+            code: 'user-not-found',
+            message: 'No user found for that username.',
+          );
+        }
+
+        email = userQuery.docs.first['email'];
       }
 
-      email = userQuery.docs.first['email'];
+      debugPrint("Logging in with email: $email");
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setBool('isGuest', false);
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/translate');
+    } on FirebaseAuthException catch (e) {
+      debugPrint("FirebaseAuthException: ${e.code} - ${e.message}");
+      String message;
+
+      switch (e.code) {
+        case 'user-not-found':
+          message = 'No user found for that email or username.';
+          break;
+        case 'wrong-password':
+          message = 'Wrong password.';
+          break;
+        case 'invalid-email':
+          message = 'Invalid email format.';
+          break;
+        default:
+          message =
+              'Login failed. Please check your credentials and try again.';
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      debugPrint("General error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("An error occurred. Try again.")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
-
-    print("Logging in with email: $email");
-
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-
-    Navigator.pushReplacementNamed(context, '/translate');
-  } on FirebaseAuthException catch (e) {
-    print("FirebaseAuthException: ${e.code} - ${e.message}");
-    String message;
-
-    switch (e.code) {
-      case 'user-not-found':
-        message = 'No user found for that email or username.';
-        break;
-      case 'wrong-password':
-        message = 'Wrong password.';
-        break;
-      case 'invalid-email':
-        message = 'Invalid email format.';
-        break;
-      default:
-        message = 'Login failed. Please check your credentials and try again.';
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
-  } catch (e) {
-    print("General error: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("An error occurred. Try again.")),
-    );
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
   }
-
-  // Save the login state in SharedPreferences
-  try{
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
-
-    Navigator.pushReplacementNamed(context, '/translate');
-  } catch (e) {
-    print("Error saving login state: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("An error occurred while saving login state.")),
-    );  
-  }
-}
 
   void continueAsGuest() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => TranslatorScreen()),
     );
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -152,10 +158,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
-                    child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                    child: Icon(
+                      Icons.arrow_back_rounded,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
 
                 // Header
@@ -214,9 +223,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: Icon(Icons.lock_outline_rounded),
                     hintText: "Enter your password",
                     suffixIcon: GestureDetector(
-                      onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onTap:
+                          () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
                       child: Icon(
-                        _obscurePassword ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                        _obscurePassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                         color: theme.hintColor,
                       ),
                     ),
@@ -229,16 +243,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 56,
-                  child: isLoading
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(primary),
+                  child:
+                      isLoading
+                          ? Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                primary,
+                              ),
+                            ),
+                          )
+                          : ElevatedButton(
+                            onPressed: login,
+                            child: const Text("Log In"),
                           ),
-                        )
-                      : ElevatedButton(
-                          onPressed: login,
-                          child: const Text("Log In"),
-                        ),
                 ),
 
                 const SizedBox(height: 28),
@@ -252,10 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: RichText(
                       text: TextSpan(
                         text: "Don't have an account? ",
-                        style: TextStyle(
-                          color: theme.hintColor,
-                          fontSize: 15,
-                        ),
+                        style: TextStyle(color: theme.hintColor, fontSize: 15),
                         children: [
                           TextSpan(
                             text: "Sign Up",

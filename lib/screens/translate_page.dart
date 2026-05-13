@@ -1,9 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:clipboard/clipboard.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'translationservice.dart';
 import 'themeawarewidget.dart';
 import '../services/language_algorithms.dart';
+import '../services/native_on_device_speech_service.dart';
+import '../services/offline_speech_recognition_service.dart';
+import '../services/offline_text_to_speech_service.dart';
+import '../services/settings_service.dart';
 import '../widgets/app_bottom_nav_bar.dart';
+
+enum _SpeechInputMode { offlineModel, nativeOnDevice, platformFallback }
 
 class TranslatorScreen extends StatefulWidget {
   const TranslatorScreen({super.key});
@@ -12,16 +22,34 @@ class TranslatorScreen extends StatefulWidget {
   State<TranslatorScreen> createState() => _TranslatorScreenState();
 }
 
-class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerProviderStateMixin {
+class _TranslatorScreenState extends State<TranslatorScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _inputController = TextEditingController();
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+  final OfflineSpeechRecognitionService _offlineSpeech =
+      OfflineSpeechRecognitionService();
+  final OfflineTextToSpeechService _offlineTts = OfflineTextToSpeechService();
+  final FlutterTts _flutterTts = FlutterTts();
   String _translatedText = "";
   List<String> _alternativeTranslations = [];
   List<String> _autocompleteSuggestions = [];
   String? _typoSuggestion;
   String _sourceLanguage = 'English';
   String _targetLanguage = 'Spanish';
-  final List<String> _availableLanguages = ['English', 'Spanish', 'Filipino'];
+  String? _voiceStatus;
+  final List<String> _availableLanguages = SettingsService.translatorLanguages;
   late AnimationController _swapController;
+  Timer? _translationDebounce;
+  Timer? _offlineTtsCompletionTimer;
+  StreamSubscription<NativeSpeechEvent>? _nativeSpeechSubscription;
+  int _translationRequestId = 0;
+  bool _speechAvailable = false;
+  bool _offlineSpeechModelAvailable = false;
+  bool _nativeOnDeviceSpeechAvailable = false;
+  bool _isListening = false;
+  bool _isSpeaking = false;
+  double _ttsVolume = SettingsService.defaultSoundVolume;
+  _SpeechInputMode? _activeSpeechInputMode;
 
   @override
   void initState() {
@@ -30,71 +58,190 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    _loadLanguageSettings();
+    _initializeVoiceTools();
+  }
+
+  Future<void> _loadLanguageSettings() async {
+    final settings = await SettingsService.load();
+    if (!mounted) return;
+    setState(() {
+      _sourceLanguage = settings.defaultSourceLanguage;
+      _targetLanguage = settings.defaultTargetLanguage;
+      _ttsVolume = settings.soundVolume;
+    });
+  }
+
+  Future<void> _initializeVoiceTools() async {
+    final offlineSpeechStatus =
+        await OfflineSpeechRecognitionService.loadModelStatus();
+    final nativeOnDeviceAvailable =
+        await NativeOnDeviceSpeechService.isAvailable();
+    final speechAvailable = await _speechToText.initialize(
+      onStatus: _handleSpeechStatus,
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _isListening = false;
+          _voiceStatus = error.errorMsg;
+        });
+      },
+    );
+
+    await _flutterTts.setSpeechRate(0.45);
+    await _flutterTts.setVolume(_ttsVolume);
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) {
+        setState(() => _isSpeaking = false);
+      }
+    });
+    _flutterTts.setCancelHandler(() {
+      if (mounted) {
+        setState(() => _isSpeaking = false);
+      }
+    });
+    _flutterTts.setErrorHandler((message) {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+          _voiceStatus = message;
+        });
+      }
+    });
+
+    if (!mounted) return;
+    setState(() {
+      _offlineSpeechModelAvailable = offlineSpeechStatus.installed;
+      _nativeOnDeviceSpeechAvailable = nativeOnDeviceAvailable;
+      _speechAvailable =
+          offlineSpeechStatus.installed ||
+          nativeOnDeviceAvailable ||
+          speechAvailable;
+      _voiceStatus = _speechAvailable ? null : 'Speech recognition unavailable';
+    });
+
+    _nativeSpeechSubscription ??= NativeOnDeviceSpeechService.events().listen(
+      _handleNativeSpeechEvent,
+      onError: (_) {},
+    );
+  }
+
+  Future<void> _refreshLocalSpeechAvailability() async {
+    final offlineSpeechStatus =
+        await OfflineSpeechRecognitionService.loadModelStatus();
+    final nativeOnDeviceAvailable =
+        await NativeOnDeviceSpeechService.isAvailable();
+
+    if (!mounted) return;
+    setState(() {
+      _offlineSpeechModelAvailable = offlineSpeechStatus.installed;
+      _nativeOnDeviceSpeechAvailable = nativeOnDeviceAvailable;
+      _speechAvailable =
+          _speechAvailable ||
+          offlineSpeechStatus.installed ||
+          nativeOnDeviceAvailable;
+      if (_speechAvailable && _voiceStatus == 'Speech recognition unavailable') {
+        _voiceStatus = null;
+      }
+    });
   }
 
   @override
   void dispose() {
+    _translationDebounce?.cancel();
+    _offlineTtsCompletionTimer?.cancel();
+    _nativeSpeechSubscription?.cancel();
+    unawaited(NativeOnDeviceSpeechService.cancel());
+    unawaited(_offlineSpeech.dispose());
+    unawaited(_offlineTts.dispose());
+    _speechToText.cancel();
+    _flutterTts.stop();
     _swapController.dispose();
     _inputController.dispose();
     super.dispose();
   }
 
-  void _translate(String text) async {
-    _updateWritingAssistance(text);
+  void _translate(String text, {bool immediate = false}) {
+    _translationDebounce?.cancel();
 
-    if (text.isNotEmpty) {
-      try {
-        final localTranslation = LanguageAlgorithms.findDirectTranslation(
-          text: text,
-          sourceLanguage: _sourceLanguage,
-          targetLanguage: _targetLanguage,
-        );
+    final activeWord = _activeWordFrom(text);
+    final suggestions = LanguageAlgorithms.autocomplete(
+      prefix: activeWord,
+      language: _sourceLanguage,
+    );
+    final typoSuggestion = LanguageAlgorithms.suggestCorrection(
+      word: activeWord,
+      language: _sourceLanguage,
+    );
 
-        String translated =
-            localTranslation ??
-            await translateText(text, _sourceLanguage, _targetLanguage);
-
-        List<String> alternatives =
-            LanguageAlgorithms.rankAlternativeTranslations(
-              originalText: text,
-              translatedText: translated,
-              sourceLanguage: _sourceLanguage,
-              targetLanguage: _targetLanguage,
-            );
-
-        setState(() {
-          _translatedText = translated;
-          _alternativeTranslations = alternatives;
-        });
-      } catch (e) {
-        setState(() {
-          _translatedText = "Translation failed: $e";
-          _alternativeTranslations = [];
-        });
-      }
-    } else {
+    if (text.trim().isEmpty) {
+      _translationRequestId++;
       setState(() {
         _translatedText = "";
         _alternativeTranslations = [];
-        _autocompleteSuggestions = [];
-        _typoSuggestion = null;
+        _autocompleteSuggestions = suggestions;
+        _typoSuggestion = typoSuggestion;
       });
+      return;
+    }
+
+    setState(() {
+      _autocompleteSuggestions = suggestions;
+      _typoSuggestion = typoSuggestion;
+    });
+
+    final requestId = ++_translationRequestId;
+    void runTranslation() {
+      _runTranslation(text, requestId);
+    }
+
+    if (immediate) {
+      runTranslation();
+    } else {
+      _translationDebounce = Timer(
+        const Duration(milliseconds: 450),
+        runTranslation,
+      );
     }
   }
 
-  void _updateWritingAssistance(String text) {
-    final activeWord = _activeWordFrom(text);
+  Future<void> _runTranslation(String text, int requestId) async {
+    try {
+      final translated = await translateText(
+        text,
+        _sourceLanguage,
+        _targetLanguage,
+      );
 
-    setState(() {
-      _autocompleteSuggestions = LanguageAlgorithms.autocomplete(
-        prefix: activeWord,
-        language: _sourceLanguage,
+      final alternatives = LanguageAlgorithms.rankAlternativeTranslations(
+        originalText: text,
+        translatedText: translated,
+        sourceLanguage: _sourceLanguage,
+        targetLanguage: _targetLanguage,
       );
-      _typoSuggestion = LanguageAlgorithms.suggestCorrection(
-        word: activeWord,
-        language: _sourceLanguage,
-      );
-    });
+
+      if (!mounted ||
+          requestId != _translationRequestId ||
+          text != _inputController.text) {
+        return;
+      }
+
+      setState(() {
+        _translatedText = translated;
+        _alternativeTranslations = alternatives;
+      });
+    } catch (e) {
+      if (!mounted ||
+          requestId != _translationRequestId ||
+          text != _inputController.text) {
+        return;
+      }
+
+      setState(() {
+        _translatedText = "Translation failed: $e";
+        _alternativeTranslations = [];
+      });
+    }
   }
 
   String _activeWordFrom(String text) {
@@ -114,7 +261,7 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       text: newText,
       selection: TextSelection.collapsed(offset: newText.length),
     );
-    _translate(newText);
+    _translate(newText, immediate: true);
   }
 
   void _onSourceLanguageChanged(String? newValue) {
@@ -122,9 +269,9 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       setState(() {
         _sourceLanguage = newValue;
       });
-      _updateWritingAssistance(_inputController.text);
+      SettingsService.saveDefaultSourceLanguage(newValue);
       if (_inputController.text.isNotEmpty) {
-        _translate(_inputController.text);
+        _translate(_inputController.text, immediate: true);
       }
     }
   }
@@ -134,8 +281,9 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       setState(() {
         _targetLanguage = newValue;
       });
+      SettingsService.saveDefaultTargetLanguage(newValue);
       if (_inputController.text.isNotEmpty) {
-        _translate(_inputController.text);
+        _translate(_inputController.text, immediate: true);
       }
     }
   }
@@ -147,9 +295,297 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
       _sourceLanguage = _targetLanguage;
       _targetLanguage = temp;
     });
+    SettingsService.saveDefaultSourceLanguage(_sourceLanguage);
+    SettingsService.saveDefaultTargetLanguage(_targetLanguage);
     if (_inputController.text.isNotEmpty) {
-      _translate(_inputController.text);
+      _translate(_inputController.text, immediate: true);
     }
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _stopActiveSpeechInput();
+      return;
+    }
+
+    if (!_speechAvailable) {
+      await _initializeVoiceTools();
+    } else {
+      await _refreshLocalSpeechAvailability();
+    }
+
+    if (!_speechAvailable) {
+      _showVoiceMessage('Speech recognition is not available on this device.');
+      return;
+    }
+
+    await _flutterTts.stop();
+
+    if (_offlineSpeechModelAvailable) {
+      final hasPermission = await _offlineSpeech.canRecord();
+      if (!hasPermission) {
+        _showVoiceMessage(
+          'Microphone permission is required for offline speech.',
+        );
+        return;
+      }
+
+      await _offlineSpeech.startRecording();
+      if (!mounted) return;
+      setState(() {
+        _activeSpeechInputMode = _SpeechInputMode.offlineModel;
+        _isSpeaking = false;
+        _isListening = true;
+        _voiceStatus = 'Listening offline...';
+      });
+      return;
+    }
+
+    if (_nativeOnDeviceSpeechAvailable) {
+      final started = await NativeOnDeviceSpeechService.start(
+        localeId: _localeForLanguage(_sourceLanguage),
+      );
+      if (started) {
+        if (!mounted) return;
+        setState(() {
+          _activeSpeechInputMode = _SpeechInputMode.nativeOnDevice;
+          _isSpeaking = false;
+          _isListening = true;
+          _voiceStatus = 'Listening on device...';
+        });
+        return;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _activeSpeechInputMode = _SpeechInputMode.platformFallback;
+        _isSpeaking = false;
+        _isListening = true;
+        _voiceStatus = 'Listening...';
+      });
+    }
+
+    await _speechToText.listen(
+      localeId: _localeForLanguage(_sourceLanguage),
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      onResult: (result) {
+        final recognized = result.recognizedWords.trim();
+        if (recognized.isEmpty) return;
+
+        _inputController.value = TextEditingValue(
+          text: recognized,
+          selection: TextSelection.collapsed(offset: recognized.length),
+        );
+        _translate(recognized, immediate: result.finalResult);
+      },
+    );
+  }
+
+  Future<void> _speakTranslation() async {
+    final text = _translatedText.trim();
+    if (text.isEmpty || text.startsWith('Translation failed:')) {
+      _showVoiceMessage('Nothing to read yet.');
+      return;
+    }
+
+    if (_isSpeaking) {
+      _offlineTtsCompletionTimer?.cancel();
+      await _offlineTts.stop();
+      await _flutterTts.stop();
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+          _voiceStatus = null;
+        });
+      }
+      return;
+    }
+
+    await _stopActiveSpeechInput(clearFinalStatus: false);
+
+    if (mounted) {
+      setState(() {
+        _isListening = false;
+        _isSpeaking = true;
+        _voiceStatus = 'Preparing offline voice...';
+      });
+    }
+
+    try {
+      final offlineDuration = await _offlineTts.speak(
+        text: text,
+        language: _targetLanguage,
+        volume: _ttsVolume,
+      );
+      if (offlineDuration != null) {
+        if (!mounted) return;
+        setState(() => _voiceStatus = null);
+        _offlineTtsCompletionTimer?.cancel();
+        _offlineTtsCompletionTimer = Timer(
+          offlineDuration + const Duration(milliseconds: 400),
+          () {
+            if (mounted) {
+              setState(() => _isSpeaking = false);
+            }
+          },
+        );
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(
+          () => _voiceStatus = 'Offline voice failed, using system TTS.',
+        );
+      }
+    }
+
+    await _flutterTts.setLanguage(_localeForLanguage(_targetLanguage));
+    await _flutterTts.setVolume(_ttsVolume);
+    if (mounted) {
+      setState(() => _voiceStatus = null);
+    }
+
+    final result = await _flutterTts.speak(text);
+    if (result != 1 && mounted) {
+      setState(() {
+        _isSpeaking = false;
+        _voiceStatus = 'System text to speech is unavailable.';
+      });
+    }
+  }
+
+  void _handleSpeechStatus(String status) {
+    if (!mounted) return;
+    final listening = status == 'listening';
+    final done = status == 'done' || status == 'notListening';
+    setState(() {
+      _isListening = listening;
+      if (done && _voiceStatus == 'Listening...') {
+        _voiceStatus = null;
+      }
+    });
+  }
+
+  Future<void> _stopActiveSpeechInput({bool clearFinalStatus = true}) async {
+    final activeMode = _activeSpeechInputMode;
+
+    switch (activeMode) {
+      case _SpeechInputMode.offlineModel:
+        if (mounted) {
+          setState(() => _voiceStatus = 'Transcribing offline...');
+        }
+        try {
+          final recognized = await _offlineSpeech.stopAndTranscribe(
+            languageCode: _whisperLanguageFor(_sourceLanguage),
+          );
+          if (!mounted) return;
+          if (recognized.isEmpty) {
+            _showVoiceMessage('No speech was detected.');
+          } else {
+            _inputController.value = TextEditingValue(
+              text: recognized,
+              selection: TextSelection.collapsed(offset: recognized.length),
+            );
+            _translate(recognized, immediate: true);
+          }
+        } catch (e) {
+          _showVoiceMessage('Offline speech failed: $e');
+        }
+        break;
+      case _SpeechInputMode.nativeOnDevice:
+        await NativeOnDeviceSpeechService.stop();
+        break;
+      case _SpeechInputMode.platformFallback:
+        await _speechToText.stop();
+        break;
+      case null:
+        break;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _activeSpeechInputMode = null;
+      _isListening = false;
+      if (clearFinalStatus &&
+          (_voiceStatus == 'Listening...' ||
+              _voiceStatus == 'Listening offline...' ||
+              _voiceStatus == 'Listening on device...' ||
+              _voiceStatus == 'Transcribing offline...')) {
+        _voiceStatus = null;
+      }
+    });
+  }
+
+  void _handleNativeSpeechEvent(NativeSpeechEvent event) {
+    if (!mounted) return;
+
+    if (event.type == 'result') {
+      final recognized = event.text?.trim() ?? '';
+      if (recognized.isEmpty) {
+        return;
+      }
+
+      _inputController.value = TextEditingValue(
+        text: recognized,
+        selection: TextSelection.collapsed(offset: recognized.length),
+      );
+      _translate(recognized, immediate: event.isFinal);
+      return;
+    }
+
+    if (event.type == 'error') {
+      setState(() {
+        _activeSpeechInputMode = null;
+        _isListening = false;
+        _voiceStatus = event.message ?? 'On-device speech failed.';
+      });
+      return;
+    }
+
+    if (event.type == 'status') {
+      final value = event.value;
+      setState(() {
+        if (value == 'done' || value == 'cancelled') {
+          _activeSpeechInputMode = null;
+          _isListening = false;
+          _voiceStatus = null;
+        } else if (value == 'processing') {
+          _voiceStatus = 'Processing speech...';
+        } else if (value == 'ready' || value == 'listening') {
+          _voiceStatus = 'Listening on device...';
+        }
+      });
+    }
+  }
+
+  String _localeForLanguage(String language) {
+    return switch (language) {
+      'Spanish' => 'es-ES',
+      'Filipino' => 'fil-PH',
+      'Japanese' => 'ja-JP',
+      'Russian' => 'ru-RU',
+      _ => 'en-US',
+    };
+  }
+
+  String _whisperLanguageFor(String language) {
+    return switch (language) {
+      'Spanish' => 'es',
+      'Filipino' => 'tl',
+      'Japanese' => 'ja',
+      'Russian' => 'ru',
+      _ => 'en',
+    };
+  }
+
+  void _showVoiceMessage(String message) {
+    if (!mounted) return;
+    setState(() => _voiceStatus = message);
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -200,7 +636,10 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                     onTap: _swapLanguages,
                     child: RotationTransition(
                       turns: Tween(begin: 0.0, end: 0.5).animate(
-                        CurvedAnimation(parent: _swapController, curve: Curves.easeInOut),
+                        CurvedAnimation(
+                          parent: _swapController,
+                          curve: Curves.easeInOut,
+                        ),
                       ),
                       child: Container(
                         width: 40,
@@ -249,20 +688,43 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                     focusedBorder: InputBorder.none,
                     filled: false,
                     contentPadding: EdgeInsets.zero,
-                    hintStyle: TextStyle(
-                      color: theme.hintColor,
-                      fontSize: 16,
-                    ),
+                    hintStyle: TextStyle(color: theme.hintColor, fontSize: 16),
                   ),
                   style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16),
                 ),
                 icon: Icons.edit_note_rounded,
                 iconColor: primary,
+                trailing: _buildHeaderIconButton(
+                  icon: _isListening ? Icons.stop_rounded : Icons.mic_rounded,
+                  color: _isListening ? theme.colorScheme.error : primary,
+                  onTap: _toggleListening,
+                ),
               ),
             ),
           ),
 
-          if (_typoSuggestion != null || _autocompleteSuggestions.isNotEmpty) ...[
+          if (_voiceStatus != null) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  _voiceStatus!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color:
+                        _isListening
+                            ? primary
+                            : theme.colorScheme.onSurface.withOpacity(0.65),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+
+          if (_typoSuggestion != null ||
+              _autocompleteSuggestions.isNotEmpty) ...[
             const SizedBox(height: 10),
             Expanded(
               flex: 2,
@@ -288,33 +750,48 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                         : _translatedText,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontSize: 16,
-                      color: _translatedText.isEmpty
-                          ? theme.hintColor
-                          : theme.colorScheme.onSurface,
+                      color:
+                          _translatedText.isEmpty
+                              ? theme.hintColor
+                              : theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
                 icon: Icons.translate_rounded,
                 iconColor: theme.colorScheme.secondary,
                 backgroundColor: primary.withOpacity(0.03),
-                trailing: _translatedText.isNotEmpty
-                    ? GestureDetector(
-                        onTap: () {
-                          FlutterClipboard.copy(_translatedText);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Copied to clipboard')),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: primary.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(Icons.content_copy_rounded, size: 16, color: primary),
-                        ),
-                      )
-                    : null,
+                trailing:
+                    _translatedText.isNotEmpty
+                        ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildHeaderIconButton(
+                              icon:
+                                  _isSpeaking
+                                      ? Icons.stop_rounded
+                                      : Icons.volume_up_rounded,
+                              color:
+                                  _isSpeaking
+                                      ? theme.colorScheme.error
+                                      : primary,
+                              onTap: _speakTranslation,
+                            ),
+                            const SizedBox(width: 8),
+                            _buildHeaderIconButton(
+                              icon: Icons.content_copy_rounded,
+                              color: primary,
+                              onTap: () {
+                                FlutterClipboard.copy(_translatedText);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Copied to clipboard'),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                        : null,
               ),
             ),
           ),
@@ -337,7 +814,11 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                             color: primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(Icons.alt_route_rounded, size: 14, color: primary),
+                          child: Icon(
+                            Icons.alt_route_rounded,
+                            size: 14,
+                            color: primary,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(
@@ -356,7 +837,10 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                         itemBuilder: (context, i) {
                           final alt = _alternativeTranslations[i];
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.cardColor,
                               borderRadius: BorderRadius.circular(14),
@@ -364,10 +848,18 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.subdirectory_arrow_right_rounded,
-                                    size: 16, color: theme.hintColor),
+                                Icon(
+                                  Icons.subdirectory_arrow_right_rounded,
+                                  size: 16,
+                                  color: theme.hintColor,
+                                ),
                                 const SizedBox(width: 10),
-                                Expanded(child: Text(alt, style: theme.textTheme.bodyMedium)),
+                                Expanded(
+                                  child: Text(
+                                    alt,
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ),
                                 GestureDetector(
                                   onTap: () {
                                     FlutterClipboard.copy(alt);
@@ -375,8 +867,11 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
                                       const SnackBar(content: Text('Copied')),
                                     );
                                   },
-                                  child: Icon(Icons.content_copy_rounded,
-                                      size: 15, color: primary),
+                                  child: Icon(
+                                    Icons.content_copy_rounded,
+                                    size: 15,
+                                    color: primary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -420,43 +915,66 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
             if (_typoSuggestion != null) ...[
               Row(
                 children: [
-                  Icon(Icons.auto_fix_high_rounded, color: theme.colorScheme.primary, size: 18),
+                  Icon(
+                    Icons.auto_fix_high_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Did you mean "$_typoSuggestion"?',
-                      style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 13),
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                   GestureDetector(
                     onTap: () => _replaceActiveWord(_typoSuggestion!),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         'Use',
-                        style: TextStyle(color: theme.colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          color: theme.colorScheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-              if (_autocompleteSuggestions.isNotEmpty) Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Divider(color: theme.dividerColor, height: 1),
-              ),
+              if (_autocompleteSuggestions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Divider(color: theme.dividerColor, height: 1),
+                ),
             ],
             if (_autocompleteSuggestions.isNotEmpty) ...[
               Row(
                 children: [
-                  Icon(Icons.manage_search_rounded, color: theme.colorScheme.secondary, size: 18),
+                  Icon(
+                    Icons.manage_search_rounded,
+                    color: theme.colorScheme.secondary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Suggestions',
-                    style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 12, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),
@@ -464,23 +982,30 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
-                children: _autocompleteSuggestions.map((suggestion) {
-                  return GestureDetector(
-                    onTap: () => _replaceActiveWord(suggestion),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        border: Border.all(color: theme.dividerColor),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        suggestion,
-                        style: TextStyle(color: theme.hintColor, fontSize: 12),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children:
+                    _autocompleteSuggestions.map((suggestion) {
+                      return GestureDetector(
+                        onTap: () => _replaceActiveWord(suggestion),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.cardColor,
+                            border: Border.all(color: theme.dividerColor),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            suggestion,
+                            style: TextStyle(
+                              color: theme.hintColor,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
             ],
           ],
@@ -499,20 +1024,43 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Theme.of(context).hintColor),
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 20,
+            color: Theme.of(context).hintColor,
+          ),
           style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: Theme.of(context).colorScheme.onSurface,
           ),
-          items: _availableLanguages.map((String language) {
-            return DropdownMenuItem<String>(
-              value: language,
-              child: Text(language),
-            );
-          }).toList(),
+          items:
+              _availableLanguages.map((String language) {
+                return DropdownMenuItem<String>(
+                  value: language,
+                  child: Text(language),
+                );
+              }).toList(),
           onChanged: onChanged,
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, size: 16, color: color),
       ),
     );
   }
@@ -555,22 +1103,5 @@ class _TranslatorScreenState extends State<TranslatorScreen> with SingleTickerPr
         ],
       ),
     );
-  }
-
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/translate');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/camera');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/minigames');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
   }
 }

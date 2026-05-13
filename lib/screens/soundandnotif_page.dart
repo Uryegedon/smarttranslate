@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/settings_service.dart';
 
 class SoundNotificationPage extends StatefulWidget {
   const SoundNotificationPage({super.key});
@@ -12,6 +13,22 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
   bool allowNotification = false;
   String soundOption = 'sound';
   double soundVolume = 0.5;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final settings = await SettingsService.load();
+    if (!mounted) return;
+    setState(() {
+      allowNotification = settings.allowNotifications;
+      soundOption = settings.soundOption;
+      soundVolume = settings.soundVolume;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +62,10 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                           ),
                         ],
                       ),
-                      child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -82,7 +102,10 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                       ],
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -92,7 +115,11 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                               color: primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(Icons.notifications_rounded, size: 20, color: primary),
+                            child: Icon(
+                              Icons.notifications_rounded,
+                              size: 20,
+                              color: primary,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -111,6 +138,7 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                               setState(() {
                                 allowNotification = value;
                               });
+                              SettingsService.saveAllowNotifications(value);
                             },
                           ),
                         ],
@@ -139,22 +167,36 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                           value: 'sound',
                           groupValue: soundOption,
                           onChanged: (value) {
+                            if (value == null) return;
                             setState(() {
-                              soundOption = value!;
+                              soundOption = value;
                             });
+                            SettingsService.saveSoundOption(value);
                           },
                           title: Row(
                             children: [
-                              Icon(Icons.volume_up_rounded, size: 20, color: primary),
+                              Icon(
+                                Icons.volume_up_rounded,
+                                size: 20,
+                                color: primary,
+                              ),
                               const SizedBox(width: 12),
                               const Text(
                                 'Sound and vibration',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -164,22 +206,36 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                           value: 'silent',
                           groupValue: soundOption,
                           onChanged: (value) {
+                            if (value == null) return;
                             setState(() {
-                              soundOption = value!;
+                              soundOption = value;
                             });
+                            SettingsService.saveSoundOption(value);
                           },
                           title: Row(
                             children: [
-                              Icon(Icons.volume_off_rounded, size: 20, color: theme.hintColor),
+                              Icon(
+                                Icons.volume_off_rounded,
+                                size: 20,
+                                color: theme.hintColor,
+                              ),
                               const SizedBox(width: 12),
                               const Text(
                                 'Silent',
-                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                         ),
                       ],
                     ),
@@ -199,7 +255,10 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 20,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.cardColor,
                       borderRadius: BorderRadius.circular(20),
@@ -213,7 +272,11 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.volume_mute_rounded, size: 20, color: theme.hintColor),
+                        Icon(
+                          Icons.volume_mute_rounded,
+                          size: 20,
+                          color: theme.hintColor,
+                        ),
                         Expanded(
                           child: Slider(
                             value: soundVolume,
@@ -221,6 +284,7 @@ class _SoundNotificationPageState extends State<SoundNotificationPage> {
                               setState(() {
                                 soundVolume = value;
                               });
+                              SettingsService.saveSoundVolume(value);
                             },
                           ),
                         ),

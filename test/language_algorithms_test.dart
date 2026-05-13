@@ -31,5 +31,25 @@ void main() {
 
       expect(alternatives.first, 'bahay');
     });
+
+    test('supports Russian direct translations', () {
+      final translation = LanguageAlgorithms.findDirectTranslation(
+        text: 'hello',
+        sourceLanguage: 'English',
+        targetLanguage: 'Russian',
+      );
+
+      expect(translation, 'привет');
+    });
+
+    test('supports Japanese to Russian direct translations', () {
+      final translation = LanguageAlgorithms.findDirectTranslation(
+        text: 'こんにちは',
+        sourceLanguage: 'Japanese',
+        targetLanguage: 'Russian',
+      );
+
+      expect(translation, 'привет');
+    });
   });
 }

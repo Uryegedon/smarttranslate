@@ -44,7 +44,6 @@ class ThemeSettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
 
     final modes = ThemeMode.values.where((m) => m != ThemeMode.system).toList();
 
@@ -84,14 +83,22 @@ class ThemeSettingsPage extends StatelessWidget {
                   // ── Theme mode ──
                   _SectionLabel('THEME MODE', theme),
                   const SizedBox(height: 12),
-                  _ThemeModeSelector(modes: modes, themeProvider: themeProvider, theme: theme),
+                  _ThemeModeSelector(
+                    modes: modes,
+                    themeProvider: themeProvider,
+                    theme: theme,
+                  ),
 
                   const SizedBox(height: 32),
 
                   // ── Color scheme ──
                   _SectionLabel('COLOR SCHEME', theme),
                   const SizedBox(height: 12),
-                  _ColorSchemeGrid(schemeData: _schemeData, themeProvider: themeProvider, theme: theme),
+                  _ColorSchemeGrid(
+                    schemeData: _schemeData,
+                    themeProvider: themeProvider,
+                    theme: theme,
+                  ),
                 ],
               ),
             ),
@@ -115,8 +122,8 @@ class _LivePreviewBanner extends StatelessWidget {
     final isDark = themeProvider.themeMode == ThemeMode.dark;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 160),
+      curve: Curves.easeOut,
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
         24,
@@ -144,9 +151,16 @@ class _LivePreviewBanner extends StatelessWidget {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.4), width: 2),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.4),
+                width: 2,
+              ),
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: Column(
@@ -194,7 +208,10 @@ class _LivePreviewBanner extends StatelessWidget {
                         height: 6,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: i == 0 ? primary : (isDark ? Colors.white24 : Colors.black12),
+                          color:
+                              i == 0
+                                  ? primary
+                                  : (isDark ? Colors.white24 : Colors.black12),
                         ),
                       );
                     }),
@@ -230,7 +247,10 @@ class _LivePreviewBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
@@ -274,7 +294,11 @@ class _ThemeModeSelector extends StatelessWidget {
   final List<ThemeMode> modes;
   final ThemeProvider themeProvider;
   final ThemeData theme;
-  const _ThemeModeSelector({required this.modes, required this.themeProvider, required this.theme});
+  const _ThemeModeSelector({
+    required this.modes,
+    required this.themeProvider,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -282,80 +306,117 @@ class _ThemeModeSelector extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
-        children: modes.asMap().entries.map((entry) {
-          final mode = entry.value;
-          final isSelected = themeProvider.themeMode == mode;
-          final icon = mode == ThemeMode.light ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
-          final label = mode == ThemeMode.light ? 'Light Mode' : 'Dark Mode';
-          final desc = mode == ThemeMode.light ? 'Bright, clean interface' : 'Easy on the eyes at night';
-          final color = theme.colorScheme.primary;
+        children:
+            modes.asMap().entries.map((entry) {
+              final mode = entry.value;
+              final isSelected = themeProvider.themeMode == mode;
+              final icon =
+                  mode == ThemeMode.light
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded;
+              final label =
+                  mode == ThemeMode.light ? 'Light Mode' : 'Dark Mode';
+              final desc =
+                  mode == ThemeMode.light
+                      ? 'Bright, clean interface'
+                      : 'Easy on the eyes at night';
+              final color = theme.colorScheme.primary;
 
-          return Column(
-            children: [
-              _AnimatedTile(
-                isSelected: isSelected,
-                color: color,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  themeProvider.setThemeMode(mode);
-                },
-                child: Row(
-                  children: [
-                    // Icon badge
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isSelected ? color.withOpacity(0.12) : theme.dividerColor.withOpacity(0.35),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(icon, size: 22, color: isSelected ? color : theme.hintColor),
-                    ),
-                    const SizedBox(width: 14),
-                    // Text
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            label,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              color: theme.colorScheme.onSurface,
+              return Column(
+                children: [
+                  _AnimatedTile(
+                    isSelected: isSelected,
+                    color: color,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      themeProvider.setThemeMode(mode);
+                    },
+                    child: Row(
+                      children: [
+                        // Icon badge
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 140),
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected
+                                    ? color.withOpacity(0.12)
+                                    : theme.dividerColor.withOpacity(0.35),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 22,
+                            color: isSelected ? color : theme.hintColor,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Text
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                desc,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.hintColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Check indicator
+                        AnimatedScale(
+                          scale: isSelected ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.elasticOut,
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: Colors.white,
                             ),
                           ),
-                          Text(
-                            desc,
-                            style: TextStyle(fontSize: 12, color: theme.hintColor),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    // Check indicator
-                    AnimatedScale(
-                      scale: isSelected ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.elasticOut,
-                      child: Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                        child: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
-                      ),
+                  ),
+                  if (entry.key < modes.length - 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Divider(height: 1, color: theme.dividerColor),
                     ),
-                  ],
-                ),
-              ),
-              if (entry.key < modes.length - 1)
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Divider(height: 1, color: theme.dividerColor)),
-            ],
-          );
-        }).toList(),
+                ],
+              );
+            }).toList(),
       ),
     );
   }
@@ -368,7 +429,11 @@ class _ColorSchemeGrid extends StatelessWidget {
   final Map<HighlightScheme, _SchemeInfo> schemeData;
   final ThemeProvider themeProvider;
   final ThemeData theme;
-  const _ColorSchemeGrid({required this.schemeData, required this.themeProvider, required this.theme});
+  const _ColorSchemeGrid({
+    required this.schemeData,
+    required this.themeProvider,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +458,7 @@ class _ColorSchemeGrid extends StatelessWidget {
           isSelected: isSelected,
           theme: theme,
           onTap: () {
-            HapticFeedback.mediumImpact();
+            HapticFeedback.selectionClick();
             themeProvider.setHighlightScheme(scheme);
           },
         );
@@ -410,23 +475,33 @@ class _SchemeCard extends StatefulWidget {
   final bool isSelected;
   final ThemeData theme;
   final VoidCallback onTap;
-  const _SchemeCard({required this.info, required this.isSelected, required this.theme, required this.onTap});
+  const _SchemeCard({
+    required this.info,
+    required this.isSelected,
+    required this.theme,
+    required this.onTap,
+  });
 
   @override
   State<_SchemeCard> createState() => _SchemeCardState();
 }
 
-class _SchemeCardState extends State<_SchemeCard> with SingleTickerProviderStateMixin {
+class _SchemeCardState extends State<_SchemeCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _pressCtrl;
   late Animation<double> _scaleAnim;
 
   @override
   void initState() {
     super.initState();
-    _pressCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.93).animate(
-      CurvedAnimation(parent: _pressCtrl, curve: Curves.easeIn),
+    _pressCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
     );
+    _scaleAnim = Tween<double>(
+      begin: 1.0,
+      end: 0.93,
+    ).animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeIn));
   }
 
   @override
@@ -443,22 +518,38 @@ class _SchemeCardState extends State<_SchemeCard> with SingleTickerProviderState
 
     return GestureDetector(
       onTapDown: (_) => _pressCtrl.forward(),
-      onTapUp: (_) { _pressCtrl.reverse(); widget.onTap(); },
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onTap();
+      },
       onTapCancel: () => _pressCtrl.reverse(),
       child: ScaleTransition(
         scale: _scaleAnim,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 140),
           curve: Curves.easeOut,
           decoration: BoxDecoration(
             color: isSelected ? color.withOpacity(0.08) : theme.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: isSelected
-                ? Border.all(color: color, width: 2.5)
-                : Border.all(color: theme.dividerColor, width: 1),
-            boxShadow: isSelected
-                ? [BoxShadow(color: color.withOpacity(0.2), blurRadius: 16, spreadRadius: 2)]
-                : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+            border:
+                isSelected
+                    ? Border.all(color: color, width: 2.5)
+                    : Border.all(color: theme.dividerColor, width: 1),
+            boxShadow:
+                isSelected
+                    ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.2),
+                        blurRadius: 16,
+                        spreadRadius: 2,
+                      ),
+                    ]
+                    : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                      ),
+                    ],
           ),
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -466,7 +557,7 @@ class _SchemeCardState extends State<_SchemeCard> with SingleTickerProviderState
             children: [
               // Colour swatch circle
               AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 140),
                 width: isSelected ? 52 : 44,
                 height: isSelected ? 52 : 44,
                 decoration: BoxDecoration(
@@ -476,9 +567,16 @@ class _SchemeCardState extends State<_SchemeCard> with SingleTickerProviderState
                     colors: [color, color.withOpacity(0.65)],
                   ),
                   shape: BoxShape.circle,
-                  boxShadow: isSelected
-                      ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]
-                      : [],
+                  boxShadow:
+                      isSelected
+                          ? [
+                            BoxShadow(
+                              color: color.withOpacity(0.4),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                          : [],
                 ),
                 child: Icon(
                   isSelected ? Icons.check_rounded : widget.info.icon,
@@ -520,20 +618,29 @@ class _AnimatedTile extends StatefulWidget {
   final Color color;
   final VoidCallback onTap;
   final Widget child;
-  const _AnimatedTile({required this.isSelected, required this.color, required this.onTap, required this.child});
+  const _AnimatedTile({
+    required this.isSelected,
+    required this.color,
+    required this.onTap,
+    required this.child,
+  });
 
   @override
   State<_AnimatedTile> createState() => _AnimatedTileState();
 }
 
-class _AnimatedTileState extends State<_AnimatedTile> with SingleTickerProviderStateMixin {
+class _AnimatedTileState extends State<_AnimatedTile>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<Color?> _bgAnim;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
     _bgAnim = ColorTween(
       begin: Colors.transparent,
       end: widget.color.withOpacity(0.05),
@@ -541,28 +648,35 @@ class _AnimatedTileState extends State<_AnimatedTile> with SingleTickerProviderS
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _bgAnim,
-      builder: (_, child) => Material(
-        color: _bgAnim.value ?? Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTapDown: (_) => _ctrl.forward(),
-          onTapUp: (_) { _ctrl.reverse(); widget.onTap(); },
-          onTapCancel: () => _ctrl.reverse(),
-          onTap: () {},
-          borderRadius: BorderRadius.circular(20),
-          splashColor: widget.color.withOpacity(0.1),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            child: widget.child,
+      builder:
+          (_, child) => Material(
+            color: _bgAnim.value ?? Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              onTapDown: (_) => _ctrl.forward(),
+              onTapUp: (_) => _ctrl.reverse(),
+              onTapCancel: () => _ctrl.reverse(),
+              onTap: widget.onTap,
+              borderRadius: BorderRadius.circular(20),
+              splashColor: widget.color.withOpacity(0.1),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 18,
+                ),
+                child: widget.child,
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 }
@@ -577,15 +691,29 @@ class _BackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () { HapticFeedback.lightImpact(); Navigator.pop(context); },
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.pop(context);
+      },
       child: Container(
-        width: 44, height: 44,
+        width: 44,
+        height: 44,
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Icon(Icons.arrow_back_rounded, color: theme.colorScheme.onSurface, size: 22),
+        child: Icon(
+          Icons.arrow_back_rounded,
+          color: theme.colorScheme.onSurface,
+          size: 22,
+        ),
       ),
     );
   }
@@ -600,7 +728,12 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: theme.hintColor, letterSpacing: 1.3),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: theme.hintColor,
+        letterSpacing: 1.3,
+      ),
     );
   }
 }
@@ -613,5 +746,10 @@ class _SchemeInfo {
   final Color color;
   final String name;
   final String subtitle;
-  const _SchemeInfo({required this.icon, required this.color, required this.name, required this.subtitle});
+  const _SchemeInfo({
+    required this.icon,
+    required this.color,
+    required this.name,
+    required this.subtitle,
+  });
 }

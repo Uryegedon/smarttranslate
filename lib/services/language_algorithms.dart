@@ -3,11 +3,15 @@ class DictionaryEntry {
     required this.english,
     required this.filipino,
     required this.spanish,
+    required this.japanese,
+    required this.russian,
   });
 
   final String english;
   final String filipino;
   final String spanish;
+  final String japanese;
+  final String russian;
 
   String valueFor(String language) {
     switch (language.toLowerCase()) {
@@ -15,6 +19,10 @@ class DictionaryEntry {
         return filipino;
       case 'spanish':
         return spanish;
+      case 'japanese':
+        return japanese;
+      case 'russian':
+        return russian;
       case 'english':
       default:
         return english;
@@ -89,54 +97,230 @@ class LanguageTrie {
 }
 
 class LanguageAlgorithms {
+  static const List<String> supportedLanguages = [
+    'English',
+    'Spanish',
+    'Filipino',
+    'Japanese',
+    'Russian',
+  ];
+
   static const List<DictionaryEntry> dictionary = [
-    DictionaryEntry(english: 'money', filipino: 'pera', spanish: 'dinero'),
-    DictionaryEntry(english: 'circle', filipino: 'bilog', spanish: 'circulo'),
-    DictionaryEntry(english: 'paper', filipino: 'papel', spanish: 'papel'),
-    DictionaryEntry(english: 'fish', filipino: 'isda', spanish: 'pez'),
-    DictionaryEntry(english: 'cat', filipino: 'pusa', spanish: 'gato'),
-    DictionaryEntry(english: 'dog', filipino: 'aso', spanish: 'perro'),
-    DictionaryEntry(english: 'house', filipino: 'bahay', spanish: 'casa'),
-    DictionaryEntry(english: 'sun', filipino: 'araw', spanish: 'sol'),
-    DictionaryEntry(english: 'water', filipino: 'tubig', spanish: 'agua'),
-    DictionaryEntry(english: 'food', filipino: 'pagkain', spanish: 'comida'),
-    DictionaryEntry(english: 'love', filipino: 'pagibig', spanish: 'amor'),
-    DictionaryEntry(english: 'book', filipino: 'libro', spanish: 'libro'),
-    DictionaryEntry(english: 'chair', filipino: 'upuan', spanish: 'silla'),
-    DictionaryEntry(english: 'tree', filipino: 'puno', spanish: 'arbol'),
-    DictionaryEntry(english: 'mouse', filipino: 'daga', spanish: 'raton'),
-    DictionaryEntry(english: 'pencil', filipino: 'lapis', spanish: 'lapiz'),
-    DictionaryEntry(english: 'hello', filipino: 'kumusta', spanish: 'hola'),
-    DictionaryEntry(english: 'goodbye', filipino: 'paalam', spanish: 'adios'),
+    DictionaryEntry(
+      english: 'money',
+      filipino: 'pera',
+      spanish: 'dinero',
+      japanese: 'お金',
+      russian: 'деньги',
+    ),
+    DictionaryEntry(
+      english: 'circle',
+      filipino: 'bilog',
+      spanish: 'circulo',
+      japanese: '円',
+      russian: 'круг',
+    ),
+    DictionaryEntry(
+      english: 'paper',
+      filipino: 'papel',
+      spanish: 'papel',
+      japanese: '紙',
+      russian: 'бумага',
+    ),
+    DictionaryEntry(
+      english: 'fish',
+      filipino: 'isda',
+      spanish: 'pez',
+      japanese: '魚',
+      russian: 'рыба',
+    ),
+    DictionaryEntry(
+      english: 'cat',
+      filipino: 'pusa',
+      spanish: 'gato',
+      japanese: '猫',
+      russian: 'кот',
+    ),
+    DictionaryEntry(
+      english: 'dog',
+      filipino: 'aso',
+      spanish: 'perro',
+      japanese: '犬',
+      russian: 'собака',
+    ),
+    DictionaryEntry(
+      english: 'house',
+      filipino: 'bahay',
+      spanish: 'casa',
+      japanese: '家',
+      russian: 'дом',
+    ),
+    DictionaryEntry(
+      english: 'sun',
+      filipino: 'araw',
+      spanish: 'sol',
+      japanese: '太陽',
+      russian: 'солнце',
+    ),
+    DictionaryEntry(
+      english: 'water',
+      filipino: 'tubig',
+      spanish: 'agua',
+      japanese: '水',
+      russian: 'вода',
+    ),
+    DictionaryEntry(
+      english: 'food',
+      filipino: 'pagkain',
+      spanish: 'comida',
+      japanese: '食べ物',
+      russian: 'еда',
+    ),
+    DictionaryEntry(
+      english: 'love',
+      filipino: 'pagibig',
+      spanish: 'amor',
+      japanese: '愛',
+      russian: 'любовь',
+    ),
+    DictionaryEntry(
+      english: 'book',
+      filipino: 'libro',
+      spanish: 'libro',
+      japanese: '本',
+      russian: 'книга',
+    ),
+    DictionaryEntry(
+      english: 'chair',
+      filipino: 'upuan',
+      spanish: 'silla',
+      japanese: '椅子',
+      russian: 'стул',
+    ),
+    DictionaryEntry(
+      english: 'tree',
+      filipino: 'puno',
+      spanish: 'arbol',
+      japanese: '木',
+      russian: 'дерево',
+    ),
+    DictionaryEntry(
+      english: 'mouse',
+      filipino: 'daga',
+      spanish: 'raton',
+      japanese: 'ネズミ',
+      russian: 'мышь',
+    ),
+    DictionaryEntry(
+      english: 'pencil',
+      filipino: 'lapis',
+      spanish: 'lapiz',
+      japanese: '鉛筆',
+      russian: 'карандаш',
+    ),
+    DictionaryEntry(
+      english: 'hello',
+      filipino: 'kumusta',
+      spanish: 'hola',
+      japanese: 'こんにちは',
+      russian: 'привет',
+    ),
+    DictionaryEntry(
+      english: 'goodbye',
+      filipino: 'paalam',
+      spanish: 'adios',
+      japanese: 'さようなら',
+      russian: 'до свидания',
+    ),
     DictionaryEntry(
       english: 'thank you',
       filipino: 'salamat',
       spanish: 'gracias',
+      japanese: 'ありがとう',
+      russian: 'спасибо',
     ),
     DictionaryEntry(
       english: 'please',
       filipino: 'pakiusap',
       spanish: 'por favor',
+      japanese: 'お願いします',
+      russian: 'пожалуйста',
     ),
-    DictionaryEntry(english: 'friend', filipino: 'kaibigan', spanish: 'amigo'),
+    DictionaryEntry(
+      english: 'friend',
+      filipino: 'kaibigan',
+      spanish: 'amigo',
+      japanese: '友達',
+      russian: 'друг',
+    ),
     DictionaryEntry(
       english: 'school',
       filipino: 'paaralan',
       spanish: 'escuela',
+      japanese: '学校',
+      russian: 'школа',
     ),
-    DictionaryEntry(english: 'teacher', filipino: 'guro', spanish: 'maestro'),
+    DictionaryEntry(
+      english: 'teacher',
+      filipino: 'guro',
+      spanish: 'maestro',
+      japanese: '先生',
+      russian: 'учитель',
+    ),
     DictionaryEntry(
       english: 'student',
       filipino: 'magaaral',
       spanish: 'estudiante',
+      japanese: '学生',
+      russian: 'студент',
     ),
-    DictionaryEntry(english: 'family', filipino: 'pamilya', spanish: 'familia'),
-    DictionaryEntry(english: 'morning', filipino: 'umaga', spanish: 'manana'),
-    DictionaryEntry(english: 'night', filipino: 'gabi', spanish: 'noche'),
+    DictionaryEntry(
+      english: 'family',
+      filipino: 'pamilya',
+      spanish: 'familia',
+      japanese: '家族',
+      russian: 'семья',
+    ),
+    DictionaryEntry(
+      english: 'morning',
+      filipino: 'umaga',
+      spanish: 'manana',
+      japanese: '朝',
+      russian: 'утро',
+    ),
+    DictionaryEntry(
+      english: 'night',
+      filipino: 'gabi',
+      spanish: 'noche',
+      japanese: '夜',
+      russian: 'ночь',
+    ),
   ];
 
+  static final Map<String, List<String>> _wordsByLanguage = {
+    for (final language in supportedLanguages)
+      _languageKey(language): List.unmodifiable(
+        dictionary.map((entry) => entry.valueFor(language)),
+      ),
+  };
+
+  static final Map<String, LanguageTrie> _triesByLanguage = {
+    for (final language in supportedLanguages)
+      _languageKey(language): LanguageTrie(
+        _wordsByLanguage[_languageKey(language)]!,
+      ),
+  };
+
+  static final Map<String, Map<String, DictionaryEntry>> _entriesByLanguage = {
+    for (final language in supportedLanguages)
+      _languageKey(language): {
+        for (final entry in dictionary)
+          _normalize(entry.valueFor(language)): entry,
+      },
+  };
+
   static List<String> wordsForLanguage(String language) {
-    return dictionary.map((entry) => entry.valueFor(language)).toList();
+    return _wordsByLanguage[_languageKey(language)] ?? const [];
   }
 
   static String? findDirectTranslation({
@@ -145,12 +329,9 @@ class LanguageAlgorithms {
     required String targetLanguage,
   }) {
     final normalizedText = _normalize(text);
-    for (final entry in dictionary) {
-      if (_normalize(entry.valueFor(sourceLanguage)) == normalizedText) {
-        return entry.valueFor(targetLanguage);
-      }
-    }
-    return null;
+    final entry =
+        _entriesByLanguage[_languageKey(sourceLanguage)]?[normalizedText];
+    return entry?.valueFor(targetLanguage);
   }
 
   static List<String> autocomplete({
@@ -158,8 +339,8 @@ class LanguageAlgorithms {
     required String language,
     int limit = 5,
   }) {
-    final trie = LanguageTrie(wordsForLanguage(language));
-    return trie.searchPrefix(prefix, limit: limit);
+    final trie = _triesByLanguage[_languageKey(language)];
+    return trie?.searchPrefix(prefix, limit: limit) ?? const [];
   }
 
   static String? suggestCorrection({
@@ -211,7 +392,7 @@ class LanguageAlgorithms {
         final deletion = table[row - 1][column] + 1;
         final insertion = table[row][column - 1] + 1;
         final substitution = table[row - 1][column - 1] + cost;
-        table[row][column] = [deletion, insertion, substitution].reduce(_min);
+        table[row][column] = _min3(deletion, insertion, substitution);
       }
     }
 
@@ -284,7 +465,14 @@ class LanguageAlgorithms {
     return score;
   }
 
-  static int _min(int left, int right) => left < right ? left : right;
+  static int _min3(int first, int second, int third) {
+    final smaller = first < second ? first : second;
+    return smaller < third ? smaller : third;
+  }
+
+  static String _languageKey(String language) {
+    return language.trim().toLowerCase();
+  }
 
   static String _normalize(String text) {
     return text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');

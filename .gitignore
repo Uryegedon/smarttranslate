@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.qodo/
 
 # IntelliJ related
 *.iml
@@ -18,10 +19,8 @@ migrate_working_dir/
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Local editor settings
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -43,3 +42,37 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+*.apk
+*.aab
+
+# Python/server local files
+.venv/
+venv/
+env/
+server/.venv/
+**/__pycache__/
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local screenshots and test captures
+flutter_*.png
+screenshots/
+
+# Local offline translation/speech model caches and archives
+.argos/
+/server/.argos/
+server/.cache/
+server/.config/
+server/.local/
+*.argosmodel
+*.onnx
+*.tar.bz2

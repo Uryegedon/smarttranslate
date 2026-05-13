@@ -11,6 +11,7 @@ plugins {
 android {
     namespace = "com.smartpath.smarttranslate"
     compileSdk = flutter.compileSdkVersion
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -33,7 +34,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
+
         release {
+            manifestPlaceholders["usesCleartextTraffic"] =
+                (project.findProperty("usesCleartextTraffic") as String?) ?: "false"
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
