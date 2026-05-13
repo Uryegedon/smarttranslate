@@ -14,7 +14,8 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
   String _sourceLanguage = SettingsService.defaultOcrSourceLanguage;
   String _targetLanguage = SettingsService.defaultOcrTargetLanguage;
 
-  final List<String> _languages = SettingsService.ocrLanguages;
+  final List<String> _sourceLanguages = SettingsService.ocrSourceLanguages;
+  final List<String> _targetLanguages = SettingsService.ocrTargetLanguages;
 
   @override
   void initState() {
@@ -188,6 +189,7 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
                               ),
                               _languageDropdown(
                                 value: _sourceLanguage,
+                                languages: _sourceLanguages,
                                 primary: primary,
                                 onChanged: (value) {
                                   if (value == null) return;
@@ -235,6 +237,7 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
                               ),
                               _languageDropdown(
                                 value: _targetLanguage,
+                                languages: _targetLanguages,
                                 primary: primary,
                                 onChanged: (value) {
                                   if (value == null) return;
@@ -329,6 +332,7 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
 
   Widget _languageDropdown({
     required String value,
+    required List<String> languages,
     required Color primary,
     required ValueChanged<String?> onChanged,
   }) {
@@ -353,7 +357,7 @@ class _OcrSettingsPageState extends State<OcrSettingsPage> {
             color: primary,
           ),
           items:
-              _languages
+              languages
                   .map(
                     (lang) => DropdownMenuItem(value: lang, child: Text(lang)),
                   )

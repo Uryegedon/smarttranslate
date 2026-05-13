@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../services/settings_service.dart';
@@ -152,11 +152,18 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
   }
 
   Future<void> _extractText(String imagePath) async {
-    final recognizedText = await FlutterTesseractOcr.extractText(
-      imagePath,
-      language: _tesseractLanguages,
-      args: const {'preserve_interword_spaces': '1'},
-    );
+    if (!_supportsOfflineOcrSource(_ocrSourceLanguage)) {
+      if (!mounted) return;
+      setState(() {
+        _recognizedText = 'OCR source not supported offline';
+        _isTranslated = false;
+        _ocrMessage =
+            'Cyrillic/Russian OCR is not available in the bundled ML Kit recognizer. Choose English, Spanish, Filipino, or Japanese as the OCR source.';
+      });
+      return;
+    }
+
+    final recognizedText = await _runOcr(imagePath);
     final extractedText =
         recognizedText.trim().isEmpty ? 'No text recognized' : recognizedText;
 
@@ -165,11 +172,33 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
       _recognizedText = extractedText;
       _isTranslated = false;
       _ocrMessage =
-          _ocrAutoTranslate ? null : 'Auto translate is off. Text extracted only.';
+          _ocrAutoTranslate
+              ? null
+              : 'Auto translate is off. Text extracted only.';
     });
 
     if (_ocrAutoTranslate && extractedText != 'No text recognized') {
       await _translateRecognizedText();
+    }
+  }
+
+  Future<String> _runOcr(String imagePath) async {
+    return _runTextRecognizer(imagePath, _ocrSourceLanguage);
+  }
+
+  Future<String> _runTextRecognizer(String imagePath, String language) async {
+    final recognizer = TextRecognizer(
+      script: _textRecognitionScriptFor(language),
+    );
+    try {
+      final inputImage = InputImage.fromFilePath(imagePath);
+      final recognizedText = await recognizer.processImage(inputImage);
+      return recognizedText.text;
+    } catch (e) {
+      debugPrint('OCR failed for $language: $e');
+      rethrow;
+    } finally {
+      await recognizer.close();
     }
   }
 
@@ -237,7 +266,16 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
     super.dispose();
   }
 
-  String get _tesseractLanguages => 'eng+spa+tgl+rus+jpn';
+  TextRecognitionScript _textRecognitionScriptFor(String language) {
+    return switch (language) {
+      'Japanese' => TextRecognitionScript.japanese,
+      _ => TextRecognitionScript.latin,
+    };
+  }
+
+  bool _supportsOfflineOcrSource(String language) {
+    return SettingsService.ocrSourceLanguages.contains(language);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -401,11 +439,12 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
                                 Text(
                                   _ocrMessage!,
                                   style: TextStyle(
-                                    color: _ocrMessage!.startsWith(
-                                          'Translation failed:',
-                                        )
-                                        ? theme.colorScheme.error
-                                        : theme.hintColor,
+                                    color:
+                                        _ocrMessage!.startsWith(
+                                              'Translation failed:',
+                                            )
+                                            ? theme.colorScheme.error
+                                            : theme.hintColor,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),

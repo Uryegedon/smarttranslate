@@ -55,6 +55,15 @@ class SettingsService {
     'Russian',
   ];
 
+  static const List<String> ocrSourceLanguages = [
+    'English',
+    'Spanish',
+    'Filipino',
+    'Japanese',
+  ];
+
+  static const List<String> ocrTargetLanguages = translatorLanguages;
+
   static const String _displayLanguageKey = 'settings.displayLanguage';
   static const String _defaultSourceLanguageKey =
       'settings.defaultSourceLanguage';
@@ -91,11 +100,11 @@ class SettingsService {
       soundOption: _normaliseSoundOption(prefs.getString(_soundOptionKey)),
       soundVolume: prefs.getDouble(_soundVolumeKey) ?? defaultSoundVolume,
       ocrAutoTranslate: prefs.getBool(_ocrAutoTranslateKey) ?? true,
-      ocrSourceLanguage: _normaliseOcrLanguage(
+      ocrSourceLanguage: _normaliseOcrSourceLanguage(
         prefs.getString(_ocrSourceLanguageKey),
         fallback: defaultOcrSourceLanguage,
       ),
-      ocrTargetLanguage: _normaliseOcrLanguage(
+      ocrTargetLanguage: _normaliseOcrTargetLanguage(
         prefs.getString(_ocrTargetLanguageKey),
         fallback: defaultOcrTargetLanguage,
       ),
@@ -228,10 +237,29 @@ class SettingsService {
         RegExp(r'^(10|172\.(1[6-9]|2\d|3[0-1])|192\.168)\.').hasMatch(host);
   }
 
-  static String _normaliseOcrLanguage(
+  static String _normaliseOcrSourceLanguage(
     String? value, {
     required String fallback,
   }) {
+    final normalized = _normaliseOcrLanguageCode(value);
+    if (normalized != null && ocrSourceLanguages.contains(normalized)) {
+      return normalized;
+    }
+    return fallback;
+  }
+
+  static String _normaliseOcrTargetLanguage(
+    String? value, {
+    required String fallback,
+  }) {
+    final normalized = _normaliseOcrLanguageCode(value);
+    if (normalized != null && ocrTargetLanguages.contains(normalized)) {
+      return normalized;
+    }
+    return fallback;
+  }
+
+  static String? _normaliseOcrLanguageCode(String? value) {
     return switch (value) {
       'en' => 'English',
       'es' => 'Spanish',
@@ -240,7 +268,7 @@ class SettingsService {
       'ru' => 'Russian',
       final stored when stored != null && ocrLanguages.contains(stored) =>
         stored,
-      _ => fallback,
+      _ => null,
     };
   }
 

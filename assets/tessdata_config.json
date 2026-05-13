@@ -1,6 +1,9 @@
 {
-    "language": "eng",
-    "configs": [],
-    "variables": {},
-    "version": 1
-  }
+  "files": [
+    "eng.traineddata",
+    "spa.traineddata",
+    "tgl.traineddata",
+    "rus.traineddata",
+    "jpn.traineddata"
+  ]
+}

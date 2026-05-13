@@ -44,6 +44,11 @@ app.*.map.json
 /android/app/release
 *.apk
 *.aab
+android/key.properties
+android/*.jks
+android/*.keystore
+android/app/*.jks
+android/app/*.keystore
 
 # Python/server local files
 .venv/
