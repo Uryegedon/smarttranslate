@@ -1,0 +1,262 @@
+[
+  {
+    "intent": "travel",
+    "trigger": "where is the {place}",
+    "templatesByLanguage": {
+      "english": ["Where is the {place}?"],
+      "spanish": ["¿Dónde está la {place}?"],
+      "filipino": ["Nasaan ang {place}?"],
+      "japanese": ["{place}はどこですか。"],
+      "russian": ["Где находится {place}?"]
+    },
+    "slots": {
+      "place": {
+        "english": ["station", "airport", "hotel", "bathroom"],
+        "spanish": ["estación", "aeropuerto", "hotel", "baño"],
+        "filipino": ["istasyon", "paliparan", "hotel", "banyo"],
+        "japanese": ["駅", "空港", "ホテル", "トイレ"],
+        "russian": ["станция", "аэропорт", "отель", "туалет"]
+      }
+    }
+  },
+  {
+    "intent": "shopping",
+    "trigger": "i need {item}",
+    "templatesByLanguage": {
+      "english": ["I need {item}."],
+      "spanish": ["Necesito {item}."],
+      "filipino": ["Kailangan ko ng {item}."],
+      "japanese": ["{item}が必要です。"],
+      "russian": ["Мне нужен {item}."]
+    },
+    "slots": {
+      "item": {
+        "english": ["charger", "medicine", "ticket", "receipt"],
+        "spanish": ["cargador", "medicina", "boleto", "recibo"],
+        "filipino": ["charger", "gamot", "tiket", "resibo"],
+        "japanese": ["充電器", "薬", "切符", "領収書"],
+        "russian": ["зарядка", "лекарство", "билет", "чек"]
+      }
+    }
+  },
+  {
+    "intent": "food",
+    "trigger": "i want {food}",
+    "templatesByLanguage": {
+      "english": ["I want {food}."],
+      "spanish": ["Quiero {food}."],
+      "filipino": ["Gusto ko ng {food}."],
+      "japanese": ["{food}が欲しいです。"],
+      "russian": ["Я хочу {food}."]
+    },
+    "slots": {
+      "food": {
+        "english": ["water", "coffee", "breakfast", "dinner"],
+        "spanish": ["agua", "café", "desayuno", "cena"],
+        "filipino": ["tubig", "kape", "almusal", "hapunan"],
+        "japanese": ["水", "コーヒー", "朝食", "夕食"],
+        "russian": ["вода", "кофе", "завтрак", "ужин"]
+      }
+    }
+  },
+  {
+    "intent": "travel",
+    "trigger": "how do i get to the {place}",
+    "templatesByLanguage": {
+      "english": ["How do I get to the {place}?"],
+      "spanish": ["¿Cómo llego a la {place}?"],
+      "filipino": ["Paano pumunta sa {place}?"],
+      "japanese": ["{place}までどう行きますか。"],
+      "russian": ["Как добраться до {place}?"]
+    },
+    "slots": {
+      "place": {
+        "english": ["station", "airport", "hotel", "hospital", "pharmacy", "entrance", "exit", "terminal"],
+        "spanish": ["estación", "aeropuerto", "hotel", "hospital", "farmacia", "entrada", "salida", "terminal"],
+        "filipino": ["istasyon", "paliparan", "hotel", "ospital", "botika", "pasukan", "labasan", "terminal"],
+        "japanese": ["駅", "空港", "ホテル", "病院", "薬局", "入口", "出口", "ターミナル"],
+        "russian": ["станция", "аэропорт", "отель", "больница", "аптека", "вход", "выход", "терминал"]
+      }
+    }
+  },
+  {
+    "intent": "shopping",
+    "trigger": "how much is the {item}",
+    "templatesByLanguage": {
+      "english": ["How much is the {item}?"],
+      "spanish": ["¿Cuánto cuesta el {item}?"],
+      "filipino": ["Magkano ang {item}?"],
+      "japanese": ["{item}はいくらですか。"],
+      "russian": ["Сколько стоит {item}?"]
+    },
+    "slots": {
+      "item": {
+        "english": ["ticket", "charger", "medicine", "coffee", "water", "luggage", "reservation"],
+        "spanish": ["boleto", "cargador", "medicina", "café", "agua", "equipaje", "reserva"],
+        "filipino": ["tiket", "charger", "gamot", "kape", "tubig", "bagahe", "reserbasyon"],
+        "japanese": ["切符", "充電器", "薬", "コーヒー", "水", "荷物", "予約"],
+        "russian": ["билет", "зарядка", "лекарство", "кофе", "вода", "багаж", "бронь"]
+      }
+    }
+  },
+  {
+    "intent": "shopping",
+    "trigger": "do you have {item}",
+    "templatesByLanguage": {
+      "english": ["Do you have {item}?"],
+      "spanish": ["¿Tiene {item}?"],
+      "filipino": ["Mayroon ba kayong {item}?"],
+      "japanese": ["{item}はありますか。"],
+      "russian": ["У вас есть {item}?"]
+    },
+    "slots": {
+      "item": {
+        "english": ["water", "coffee", "medicine", "charger", "receipt", "ticket"],
+        "spanish": ["agua", "café", "medicina", "cargador", "recibo", "boleto"],
+        "filipino": ["tubig", "kape", "gamot", "charger", "resibo", "tiket"],
+        "japanese": ["水", "コーヒー", "薬", "充電器", "領収書", "切符"],
+        "russian": ["вода", "кофе", "лекарство", "зарядка", "чек", "билет"]
+      }
+    }
+  },
+  {
+    "intent": "help",
+    "trigger": "can you show me the {document}",
+    "templatesByLanguage": {
+      "english": ["Can you show me the {document}?"],
+      "spanish": ["¿Puede mostrarme el {document}?"],
+      "filipino": ["Pwede mo bang ipakita ang {document}?"],
+      "japanese": ["{document}を見せてもらえますか。"],
+      "russian": ["Можете показать {document}?"]
+    },
+    "slots": {
+      "document": {
+        "english": ["menu", "receipt", "schedule", "reservation", "passport"],
+        "spanish": ["menú", "recibo", "horario", "reserva", "pasaporte"],
+        "filipino": ["menu", "resibo", "iskedyul", "reserbasyon", "pasaporte"],
+        "japanese": ["メニュー", "領収書", "時刻表", "予約", "パスポート"],
+        "russian": ["меню", "чек", "расписание", "бронь", "паспорт"]
+      }
+    }
+  },
+  {
+    "intent": "question",
+    "trigger": "what is the {thing}",
+    "templatesByLanguage": {
+      "english": ["What is the {thing}?"],
+      "spanish": ["¿Cuál es el {thing}?"],
+      "filipino": ["Ano ang {thing}?"],
+      "japanese": ["{thing}は何ですか。"],
+      "russian": ["Что такое {thing}?"]
+    },
+    "slots": {
+      "thing": {
+        "english": ["price", "schedule", "address", "problem", "password", "reservation"],
+        "spanish": ["precio", "horario", "dirección", "problema", "contraseña", "reserva"],
+        "filipino": ["presyo", "iskedyul", "address", "problema", "password", "reserbasyon"],
+        "japanese": ["値段", "時刻表", "住所", "問題", "パスワード", "予約"],
+        "russian": ["цена", "расписание", "адрес", "проблема", "пароль", "бронь"]
+      }
+    }
+  },
+  {
+    "intent": "travel",
+    "trigger": "where can i find the {place}",
+    "templatesByLanguage": {
+      "english": ["Where can I find the {place}?"],
+      "spanish": ["¿Dónde puedo encontrar la {place}?"],
+      "filipino": ["Saan ko mahahanap ang {place}?"],
+      "japanese": ["{place}はどこで見つけられますか。"],
+      "russian": ["Где я могу найти {place}?"]
+    },
+    "slots": {
+      "place": {
+        "english": ["entrance", "exit", "terminal", "pharmacy", "hospital", "bathroom"],
+        "spanish": ["entrada", "salida", "terminal", "farmacia", "hospital", "baño"],
+        "filipino": ["pasukan", "labasan", "terminal", "botika", "ospital", "banyo"],
+        "japanese": ["入口", "出口", "ターミナル", "薬局", "病院", "トイレ"],
+        "russian": ["вход", "выход", "терминал", "аптека", "больница", "туалет"]
+      }
+    }
+  },
+  {
+    "intent": "schedule",
+    "trigger": "when is the next {transport}",
+    "templatesByLanguage": {
+      "english": ["When is the next {transport}?"],
+      "spanish": ["¿Cuándo es el próximo {transport}?"],
+      "filipino": ["Kailan ang susunod na {transport}?"],
+      "japanese": ["次の{transport}はいつですか。"],
+      "russian": ["Когда следующий {transport}?"]
+    },
+    "slots": {
+      "transport": {
+        "english": ["bus", "train", "flight", "appointment", "schedule"],
+        "spanish": ["bus", "tren", "vuelo", "cita", "horario"],
+        "filipino": ["bus", "tren", "flight", "appointment", "iskedyul"],
+        "japanese": ["バス", "電車", "飛行機", "予約", "時刻表"],
+        "russian": ["автобус", "поезд", "рейс", "встреча", "расписание"]
+      }
+    }
+  },
+  {
+    "intent": "help",
+    "trigger": "who can help with {issue}",
+    "templatesByLanguage": {
+      "english": ["Who can help with {issue}?"],
+      "spanish": ["¿Quién puede ayudar con {issue}?"],
+      "filipino": ["Sino ang makakatulong sa {issue}?"],
+      "japanese": ["{issue}について誰が助けてくれますか。"],
+      "russian": ["Кто может помочь с {issue}?"]
+    },
+    "slots": {
+      "issue": {
+        "english": ["luggage", "reservation", "passport", "payment", "account", "problem"],
+        "spanish": ["equipaje", "reserva", "pasaporte", "pago", "cuenta", "problema"],
+        "filipino": ["bagahe", "reserbasyon", "pasaporte", "bayad", "account", "problema"],
+        "japanese": ["荷物", "予約", "パスポート", "支払い", "口座", "問題"],
+        "russian": ["багаж", "бронь", "паспорт", "оплата", "аккаунт", "проблема"]
+      }
+    }
+  },
+  {
+    "intent": "problem",
+    "trigger": "why is this {problem}",
+    "templatesByLanguage": {
+      "english": ["Why is this {problem}?"],
+      "spanish": ["¿Por qué está {problem}?"],
+      "filipino": ["Bakit ito {problem}?"],
+      "japanese": ["なぜこれは{problem}ですか。"],
+      "russian": ["Почему это {problem}?"]
+    },
+    "slots": {
+      "problem": {
+        "english": ["unavailable", "delayed", "closed", "broken", "expensive"],
+        "spanish": ["no disponible", "retrasado", "cerrado", "roto", "caro"],
+        "filipino": ["unavailable", "late", "sarado", "sira", "mahal"],
+        "japanese": ["利用できない", "遅れています", "閉まっています", "壊れています", "高い"],
+        "russian": ["недоступно", "задержано", "закрыто", "сломано", "дорого"]
+      }
+    }
+  },
+  {
+    "intent": "help",
+    "trigger": "how can i {action}",
+    "templatesByLanguage": {
+      "english": ["How can I {action}?"],
+      "spanish": ["¿Cómo puedo {action}?"],
+      "filipino": ["Paano ako makaka{action}?"],
+      "japanese": ["どうすれば{action}できますか。"],
+      "russian": ["Как я могу {action}?"]
+    },
+    "slots": {
+      "action": {
+        "english": ["pay", "cancel", "reserve", "exchange this", "contact support"],
+        "spanish": ["pagar", "cancelar", "reservar", "cambiar esto", "contactar soporte"],
+        "filipino": ["bayad", "cancel", "reserve", "palit nito", "contact support"],
+        "japanese": ["支払い", "キャンセル", "予約", "交換", "サポートに連絡"],
+        "russian": ["заплатить", "отменить", "забронировать", "обменять это", "связаться с поддержкой"]
+      }
+    }
+  }
+]

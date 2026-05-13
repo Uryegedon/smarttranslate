@@ -578,11 +578,13 @@ def _best_phrasebank_match(
         )
         for phrase in source_phrases:
             score = _phrase_similarity_score(normalized_text, phrase)
+            if not _is_plausible_phrase_match(normalized_text, phrase, score):
+                continue
             if score > best_score:
                 best_score = score
                 best_concept = concept
 
-    if best_concept is None or best_score < 58:
+    if best_concept is None or best_score < 72:
         return None
 
     return best_concept, best_score
@@ -626,6 +628,56 @@ def _phrase_similarity_score(text: str, phrase: str) -> int:
     )
     contains_score = 90 if text in normalized_phrase or normalized_phrase in text else 0
     return max(token_score, edit_score, contains_score)
+
+
+def _is_plausible_phrase_match(text: str, phrase: str, score: int) -> bool:
+    normalized_phrase = _normalize_text(phrase)
+    if (
+        text == normalized_phrase
+        or text.startswith(normalized_phrase)
+        or normalized_phrase.startswith(text)
+        or text in normalized_phrase
+        or normalized_phrase in text
+    ):
+        return True
+
+    if _meaningful_tokens(text).intersection(_meaningful_tokens(normalized_phrase)):
+        return True
+
+    return score >= 84
+
+
+def _meaningful_tokens(text: str) -> set[str]:
+    return {token for token in _tokens(text) if token not in FUZZY_PHRASE_STOP_WORDS}
+
+
+FUZZY_PHRASE_STOP_WORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "can",
+    "could",
+    "did",
+    "does",
+    "he",
+    "i",
+    "is",
+    "it",
+    "me",
+    "my",
+    "of",
+    "say",
+    "she",
+    "the",
+    "this",
+    "to",
+    "what",
+    "where",
+    "who",
+    "why",
+    "you",
+}
 
 
 def _levenshtein_distance(first: str, second: str) -> int:
@@ -710,14 +762,47 @@ def _translate_with_argos(
         if source is None or target is None:
             return None
 
-        translation = source.get_translation(target)
-        if translation is None:
-            return None
+        direct_translation = _argos_translate_between(
+            text=text,
+            source=source,
+            target=target,
+        )
+        if direct_translation:
+            return direct_translation
 
-        translated = translation.translate(text)
+        if source_code != "en" and target_code != "en":
+            english = next(
+                (language for language in installed_languages if language.code == "en"),
+                None,
+            )
+            if english is None:
+                return None
+
+            pivot_text = _argos_translate_between(
+                text=text,
+                source=source,
+                target=english,
+            )
+            if not pivot_text:
+                return None
+
+            return _argos_translate_between(
+                text=pivot_text,
+                source=english,
+                target=target,
+            )
     except Exception:
         return None
 
+    return None
+
+
+def _argos_translate_between(text: str, source, target) -> str | None:
+    translation = source.get_translation(target)
+    if translation is None:
+        return None
+
+    translated = translation.translate(text)
     return translated or None
 
 

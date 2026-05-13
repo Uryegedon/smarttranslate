@@ -202,5 +202,65 @@
       "japanese": ["ゆっくり話してください", "もう少しゆっくりお願いします", "ゆっくりお願いします"],
       "russian": ["говорите медленнее, пожалуйста", "можно помедленнее?", "пожалуйста, медленнее"]
     }
+  },
+  {
+    "id": "clarification.repeat_that",
+    "intent": "clarification",
+    "tags": ["repeat", "speech", "clarify"],
+    "translations": {
+      "english": ["please repeat that", "can you repeat that", "say that again"],
+      "spanish": ["repita eso, por favor", "puede repetir eso", "dígalo otra vez"],
+      "filipino": ["pak ulit po", "pwede mo bang ulitin iyon", "pakiulit iyon"],
+      "japanese": ["もう一度言ってください", "それを繰り返してもらえますか", "もう一回お願いします"],
+      "russian": ["повторите, пожалуйста", "можете повторить это", "скажите это еще раз"]
+    }
+  },
+  {
+    "id": "language.speak_english",
+    "intent": "language_help",
+    "tags": ["language", "english", "question"],
+    "translations": {
+      "english": ["do you speak english", "can you speak english", "english please"],
+      "spanish": ["habla inglés?", "puede hablar inglés?", "inglés, por favor"],
+      "filipino": ["marunong ka bang mag english?", "pwede ka bang mag english?", "english po"],
+      "japanese": ["英語を話せますか", "英語でお願いします", "英語はできますか"],
+      "russian": ["вы говорите по-английски?", "можете говорить по-английски?", "по-английски, пожалуйста"]
+    }
+  },
+  {
+    "id": "travel.lost",
+    "intent": "directions",
+    "tags": ["lost", "travel", "help"],
+    "translations": {
+      "english": ["i am lost", "i got lost", "i do not know where i am"],
+      "spanish": ["estoy perdido", "me perdí", "no sé dónde estoy"],
+      "filipino": ["nawawala ako", "naligaw ako", "hindi ko alam kung nasaan ako"],
+      "japanese": ["道に迷いました", "迷子になりました", "ここがどこかわかりません"],
+      "russian": ["я потерялся", "я заблудился", "я не знаю, где я"]
+    }
+  },
+  {
+    "id": "health.need_doctor",
+    "intent": "medical_help",
+    "tags": ["doctor", "hospital", "health"],
+    "translations": {
+      "english": ["i need a doctor", "i need a hospital", "call a doctor"],
+      "spanish": ["necesito un doctor", "necesito un hospital", "llame a un doctor"],
+      "filipino": ["kailangan ko ng doktor", "kailangan ko ng ospital", "tumawag ng doktor"],
+      "japanese": ["医者が必要です", "病院が必要です", "医者を呼んでください"],
+      "russian": ["мне нужен врач", "мне нужна больница", "позовите врача"]
+    }
+  },
+  {
+    "id": "travel.transport_time",
+    "intent": "schedule_question",
+    "tags": ["schedule", "transport", "time"],
+    "translations": {
+      "english": ["what time does it leave", "when is the next bus", "when is the next train"],
+      "spanish": ["a qué hora sale", "cuándo es el próximo bus", "cuándo es el próximo tren"],
+      "filipino": ["anong oras aalis", "kailan ang susunod na bus", "kailan ang susunod na tren"],
+      "japanese": ["何時に出発しますか", "次のバスはいつですか", "次の電車はいつですか"],
+      "russian": ["во сколько отправляется", "когда следующий автобус", "когда следующий поезд"]
+    }
   }
 ]

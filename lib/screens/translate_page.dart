@@ -35,6 +35,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
   List<String> _autocompleteSuggestions = [];
   String? _typoSuggestion;
   String? _phraseSuggestion;
+  String? _suppressedInlineSuggestionText;
   String _sourceLanguage = 'English';
   String _targetLanguage = 'Spanish';
   String? _voiceStatus;
@@ -61,7 +62,16 @@ class _TranslatorScreenState extends State<TranslatorScreen>
       vsync: this,
     );
     _loadLanguageSettings();
+    _loadAutocompleteVocabulary();
     _initializeVoiceTools();
+  }
+
+  Future<void> _loadAutocompleteVocabulary() async {
+    await LanguageAlgorithms.loadVocabulary();
+    if (!mounted || _inputController.text.isEmpty) {
+      return;
+    }
+    _translate(_inputController.text, immediate: true);
   }
 
   Future<void> _loadLanguageSettings() async {
@@ -169,14 +179,10 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     _translationDebounce?.cancel();
 
     final activeWord = _activeWordFrom(text);
-    final suggestions =
-        LanguageAlgorithms.autocomplete(
-          prefix: activeWord,
-          language: _sourceLanguage,
-        ).where((suggestion) {
-          return !suggestion.contains(' ') &&
-              suggestion.toLowerCase() != activeWord.toLowerCase();
-        }).toList();
+    final suggestions = LanguageAlgorithms.autocompleteText(
+      text: text,
+      language: _sourceLanguage,
+    );
     final typoSuggestion = LanguageAlgorithms.suggestCorrection(
       word: activeWord,
       language: _sourceLanguage,
@@ -185,23 +191,30 @@ class _TranslatorScreenState extends State<TranslatorScreen>
       text: text,
       language: _sourceLanguage,
     );
+    final suppressInlineSuggestion =
+        _normalizeInlineSuggestionText(text) == _suppressedInlineSuggestionText;
+    final visibleTypoSuggestion =
+        suppressInlineSuggestion ? null : typoSuggestion;
+    final visiblePhraseSuggestion =
+        suppressInlineSuggestion ? null : phraseSuggestion;
 
     if (text.trim().isEmpty) {
       _translationRequestId++;
+      _suppressedInlineSuggestionText = null;
       setState(() {
         _translatedText = "";
         _alternativeTranslations = [];
         _autocompleteSuggestions = suggestions;
-        _typoSuggestion = typoSuggestion;
-        _phraseSuggestion = phraseSuggestion;
+        _typoSuggestion = visibleTypoSuggestion;
+        _phraseSuggestion = visiblePhraseSuggestion;
       });
       return;
     }
 
     setState(() {
       _autocompleteSuggestions = suggestions;
-      _typoSuggestion = typoSuggestion;
-      _phraseSuggestion = phraseSuggestion;
+      _typoSuggestion = visibleTypoSuggestion;
+      _phraseSuggestion = visiblePhraseSuggestion;
     });
 
     final requestId = ++_translationRequestId;
@@ -291,7 +304,10 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     return words.isEmpty ? '' : words.last;
   }
 
-  void _replaceActiveWord(String replacement) {
+  void _replaceActiveWord(
+    String replacement, {
+    bool suppressInlineSuggestion = false,
+  }) {
     final currentText = _inputController.text.trimRight();
     final lastSpace = currentText.lastIndexOf(RegExp(r'\s'));
     final newText =
@@ -299,6 +315,9 @@ class _TranslatorScreenState extends State<TranslatorScreen>
             ? replacement
             : '${currentText.substring(0, lastSpace + 1)}$replacement';
 
+    if (suppressInlineSuggestion) {
+      _suppressedInlineSuggestionText = _normalizeInlineSuggestionText(newText);
+    }
     _inputController.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: newText.length),
@@ -309,6 +328,12 @@ class _TranslatorScreenState extends State<TranslatorScreen>
   void _acceptAutocompleteSuggestion() {
     final suggestion = _inlineAutocompleteSuggestion();
     if (suggestion == null) return;
+    unawaited(
+      LanguageAlgorithms.recordAcceptedAutocomplete(
+        word: suggestion,
+        language: _sourceLanguage,
+      ),
+    );
     _replaceActiveWord(suggestion);
   }
 
@@ -772,9 +797,9 @@ class _TranslatorScreenState extends State<TranslatorScreen>
 
           const SizedBox(height: 12),
 
-          // ── Input card (fills ~40% of remaining height) ──
+          // ── Input card ──
           Expanded(
-            flex: 5,
+            flex: _alternativeTranslations.isNotEmpty ? 4 : 5,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildTextCardFull(
@@ -814,7 +839,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
 
           // ── Output card ──
           Expanded(
-            flex: 5,
+            flex: _alternativeTranslations.isNotEmpty ? 4 : 5,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildTextCardFull(
@@ -875,7 +900,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
           if (_alternativeTranslations.isNotEmpty) ...[
             const SizedBox(height: 10),
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
@@ -913,8 +938,8 @@ class _TranslatorScreenState extends State<TranslatorScreen>
                           final alt = _alternativeTranslations[i];
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
+                              horizontal: 12,
+                              vertical: 8,
                             ),
                             decoration: BoxDecoration(
                               color: theme.cardColor,
@@ -983,6 +1008,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
               TextField(
                 controller: _inputController,
                 onChanged: _translate,
+                onTap: _acceptAutocompleteWhenCursorIsAtEnd,
                 expands: true,
                 maxLines: null,
                 minLines: null,
@@ -1040,9 +1066,25 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     );
   }
 
+  void _acceptAutocompleteWhenCursorIsAtEnd() {
+    final suffix = _inlineAutocompleteSuffix();
+    if (suffix == null) {
+      return;
+    }
+
+    final selection = _inputController.selection;
+    if (selection.isCollapsed &&
+        selection.baseOffset == _inputController.text.length) {
+      _acceptAutocompleteSuggestion();
+    }
+  }
+
   void _acceptInlineSuggestion() {
     final phraseSuggestion = _phraseSuggestion;
     if (phraseSuggestion != null) {
+      _suppressedInlineSuggestionText = _normalizeInlineSuggestionText(
+        phraseSuggestion,
+      );
       _inputController.value = TextEditingValue(
         text: phraseSuggestion,
         selection: TextSelection.collapsed(offset: phraseSuggestion.length),
@@ -1053,8 +1095,12 @@ class _TranslatorScreenState extends State<TranslatorScreen>
 
     final typoSuggestion = _typoSuggestion;
     if (typoSuggestion != null) {
-      _replaceActiveWord(typoSuggestion);
+      _replaceActiveWord(typoSuggestion, suppressInlineSuggestion: true);
     }
+  }
+
+  String _normalizeInlineSuggestionText(String text) {
+    return text.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   }
 
   Widget _buildInlineSuggestion(ThemeData theme) {
@@ -1167,7 +1213,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     final theme = Theme.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: backgroundColor ?? theme.cardColor,
         borderRadius: BorderRadius.circular(20),
@@ -1189,7 +1235,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
               if (trailing != null) trailing,
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Expanded(child: child),
         ],
       ),
