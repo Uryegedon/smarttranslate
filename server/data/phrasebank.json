@@ -1,0 +1,206 @@
+[
+  {
+    "id": "greeting.hello",
+    "intent": "greeting",
+    "tags": ["greeting", "casual", "opening"],
+    "translations": {
+      "english": ["hello", "hi", "hey"],
+      "spanish": ["hola", "¿Qué tal?", "¿Qué onda?", "buenas"],
+      "filipino": ["kumusta", "kamusta ka?", "magandang araw", "uy"],
+      "japanese": ["こんにちは", "やあ", "どうも"],
+      "russian": ["привет", "здравствуйте", "добрый день"]
+    }
+  },
+  {
+    "id": "greeting.good_morning",
+    "intent": "greeting",
+    "tags": ["greeting", "morning"],
+    "translations": {
+      "english": ["good morning", "morning"],
+      "spanish": ["buenos días", "buen día", "que tengas buen día"],
+      "filipino": ["magandang umaga", "umaga na", "kamusta ang umaga?"],
+      "japanese": ["おはようございます", "おはよう", "良い朝ですね"],
+      "russian": ["доброе утро", "с добрым утром", "хорошего утра"]
+    }
+  },
+  {
+    "id": "greeting.good_afternoon",
+    "intent": "greeting",
+    "tags": ["greeting", "afternoon"],
+    "translations": {
+      "english": ["good afternoon"],
+      "spanish": ["buenas tardes", "que tengas buena tarde", "feliz tarde"],
+      "filipino": ["magandang hapon", "maayong hapon", "kamusta ngayong hapon?"],
+      "japanese": ["こんにちは", "良い午後を", "午後もよろしくお願いします"],
+      "russian": ["добрый день", "хорошего дня", "доброго дня"]
+    }
+  },
+  {
+    "id": "greeting.good_evening",
+    "intent": "greeting",
+    "tags": ["greeting", "evening"],
+    "translations": {
+      "english": ["good evening"],
+      "spanish": ["buenas noches", "buena noche", "que tengas buena noche"],
+      "filipino": ["magandang gabi", "maayong gabii", "kamusta ngayong gabi?"],
+      "japanese": ["こんばんは", "良い夜を", "今晩は"],
+      "russian": ["добрый вечер", "хорошего вечера", "приятного вечера"]
+    }
+  },
+  {
+    "id": "greeting.goodbye",
+    "intent": "farewell",
+    "tags": ["goodbye", "closing"],
+    "translations": {
+      "english": ["goodbye", "bye", "see you"],
+      "spanish": ["adiós", "hasta luego", "nos vemos"],
+      "filipino": ["paalam", "sige, ingat", "kita tayo ulit"],
+      "japanese": ["さようなら", "またね", "ではまた"],
+      "russian": ["до свидания", "пока", "до встречи"]
+    }
+  },
+  {
+    "id": "social.thanks",
+    "intent": "gratitude",
+    "tags": ["thanks", "polite"],
+    "translations": {
+      "english": ["thank you", "thanks", "thank you very much"],
+      "spanish": ["gracias", "muchas gracias", "te lo agradezco"],
+      "filipino": ["salamat", "maraming salamat", "salamat po"],
+      "japanese": ["ありがとう", "ありがとうございます", "感謝します"],
+      "russian": ["спасибо", "большое спасибо", "благодарю"]
+    }
+  },
+  {
+    "id": "social.how_are_you",
+    "intent": "small_talk",
+    "tags": ["greeting", "question", "status"],
+    "translations": {
+      "english": ["how are you", "how are you doing", "how is it going"],
+      "spanish": ["¿Cómo estás?", "¿Qué tal?", "¿Cómo te va?"],
+      "filipino": ["kamusta ka?", "ayos ka lang?", "kumusta naman?"],
+      "japanese": ["お元気ですか", "調子はどうですか", "元気？"],
+      "russian": ["как дела?", "как вы?", "как поживаешь?"]
+    }
+  },
+  {
+    "id": "identity.my_name_is",
+    "intent": "introduction",
+    "tags": ["name", "introduction"],
+    "translations": {
+      "english": ["my name is", "i am", "i'm"],
+      "spanish": ["me llamo", "mi nombre es", "soy"],
+      "filipino": ["ang pangalan ko ay", "ako si", "ang pangalan ko po ay"],
+      "japanese": ["私の名前は", "私は", "と申します"],
+      "russian": ["меня зовут", "моё имя", "я"]
+    }
+  },
+  {
+    "id": "help.can_you_help",
+    "intent": "help_request",
+    "tags": ["help", "request"],
+    "translations": {
+      "english": ["can you help me", "can you assist me", "please help me"],
+      "spanish": ["¿Puedes ayudarme?", "¿Me ayudas?", "Necesito ayuda"],
+      "filipino": ["Pwede mo ba akong tulungan?", "Tulungan mo ako", "Kailangan ko ng tulong"],
+      "japanese": ["手伝ってくれますか", "助けてください", "手伝えますか"],
+      "russian": ["вы можете мне помочь?", "помогите мне, пожалуйста", "мне нужна помощь"]
+    }
+  },
+  {
+    "id": "travel.where_bathroom",
+    "intent": "directions",
+    "tags": ["travel", "bathroom", "question"],
+    "translations": {
+      "english": ["where is the bathroom", "where is the restroom", "where bathroom"],
+      "spanish": ["¿Dónde está el baño?", "¿Hay baño?", "¿Dónde queda el baño?"],
+      "filipino": ["Nasaan ang banyo?", "Saan ang CR?", "May banyo ba dito?"],
+      "japanese": ["トイレはどこですか", "お手洗いはどこですか", "トイレはありますか"],
+      "russian": ["где туалет?", "где находится туалет?", "тут есть туалет?"]
+    }
+  },
+  {
+    "id": "travel.where_station",
+    "intent": "directions",
+    "tags": ["travel", "station", "question"],
+    "translations": {
+      "english": ["where is the station", "where is the nearest station", "how do i get to the station"],
+      "spanish": ["¿Dónde está la estación?", "¿Dónde queda la estación?", "¿Cómo llego a la estación?"],
+      "filipino": ["Nasaan ang istasyon?", "Saan ang station?", "Paano pumunta sa istasyon?"],
+      "japanese": ["駅はどこですか", "駅までどう行きますか", "最寄り駅はどこですか"],
+      "russian": ["где станция?", "как пройти к станции?", "где ближайшая станция?"]
+    }
+  },
+  {
+    "id": "shopping.price",
+    "intent": "price_question",
+    "tags": ["shopping", "price", "question"],
+    "translations": {
+      "english": ["how much is this", "how much does this cost", "what is the price"],
+      "spanish": ["¿Cuánto cuesta?", "¿Cuánto vale?", "¿Cuál es el precio?"],
+      "filipino": ["Magkano ito?", "Ano ang presyo nito?", "Magkano po?"],
+      "japanese": ["これはいくらですか", "値段はいくらですか", "おいくらですか"],
+      "russian": ["сколько это стоит?", "какая цена?", "сколько стоит?"]
+    }
+  },
+  {
+    "id": "food.order",
+    "intent": "ordering",
+    "tags": ["food", "restaurant", "order"],
+    "translations": {
+      "english": ["i would like to order", "i want to order", "can i order"],
+      "spanish": ["quisiera pedir", "me gustaría ordenar", "quiero pedir"],
+      "filipino": ["gusto kong umorder", "oorder po ako", "pwede po akong umorder?"],
+      "japanese": ["注文したいです", "これをお願いします", "注文してもいいですか"],
+      "russian": ["я хотел бы заказать", "можно заказать?", "я хочу заказать"]
+    }
+  },
+  {
+    "id": "polite.sorry",
+    "intent": "apology",
+    "tags": ["sorry", "polite"],
+    "translations": {
+      "english": ["i am sorry", "sorry", "my apologies"],
+      "spanish": ["lo siento", "perdón", "disculpa"],
+      "filipino": ["pasensya na", "paumanhin", "sorry po"],
+      "japanese": ["ごめんなさい", "すみません", "申し訳ありません"],
+      "russian": ["извините", "простите", "мне жаль"]
+    }
+  },
+  {
+    "id": "polite.excuse_me",
+    "intent": "attention",
+    "tags": ["excuse", "polite"],
+    "translations": {
+      "english": ["excuse me", "pardon me"],
+      "spanish": ["disculpa", "perdón", "con permiso"],
+      "filipino": ["excuse po", "makikiraan po", "paumanhin"],
+      "japanese": ["すみません", "失礼します", "ちょっとすみません"],
+      "russian": ["извините", "простите", "разрешите"]
+    }
+  },
+  {
+    "id": "clarification.do_not_understand",
+    "intent": "clarification",
+    "tags": ["understand", "clarify"],
+    "translations": {
+      "english": ["i do not understand", "i don't understand", "i cannot understand"],
+      "spanish": ["no entiendo", "no comprendo", "no lo entiendo"],
+      "filipino": ["hindi ko maintindihan", "di ko gets", "hindi ko po naiintindihan"],
+      "japanese": ["わかりません", "理解できません", "よくわかりません"],
+      "russian": ["я не понимаю", "не понимаю", "мне непонятно"]
+    }
+  },
+  {
+    "id": "clarification.speak_slowly",
+    "intent": "clarification",
+    "tags": ["slowly", "speech", "clarify"],
+    "translations": {
+      "english": ["please speak slowly", "speak slowly please", "can you speak slower"],
+      "spanish": ["habla despacio, por favor", "puedes hablar más lento?", "más despacio, por favor"],
+      "filipino": ["pakibagalan ang pagsasalita", "dahan-dahan lang po", "pwede pong mas mabagal?"],
+      "japanese": ["ゆっくり話してください", "もう少しゆっくりお願いします", "ゆっくりお願いします"],
+      "russian": ["говорите медленнее, пожалуйста", "можно помедленнее?", "пожалуйста, медленнее"]
+    }
+  }
+]

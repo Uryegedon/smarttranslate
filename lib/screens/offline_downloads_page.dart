@@ -22,6 +22,8 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
   bool _downloading = false;
   bool _downloadingSpeech = false;
   String? _message;
+  double? _progressValue;
+  String? _progressLabel;
 
   List<String> get _languages => DeviceTranslationService.supportedLanguages;
 
@@ -31,10 +33,12 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool clearMessage = true}) async {
     setState(() {
       _loading = true;
-      _message = null;
+      if (clearMessage) {
+        _message = null;
+      }
     });
 
     try {
@@ -71,24 +75,45 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     setState(() {
       _downloading = true;
       _message = null;
+      _progressValue = 0;
+      _progressLabel = 'Preparing downloads';
     });
 
     try {
+      final selectedLanguages = languages.toSet().toList();
       final result = await DeviceTranslationService.downloadLanguages(
-        languages,
+        selectedLanguages,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _progressValue = progress.value;
+            _progressLabel = progress.message;
+          });
+        },
       );
       final ttsResult = await OfflineTextToSpeechService.downloadLanguages(
-        languages,
+        selectedLanguages,
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _progressValue = progress.value;
+            _progressLabel = progress.message;
+          });
+        },
       );
       if (!mounted) return;
       setState(() => _message = _summaryFor(result, ttsResult));
-      await _load();
+      await _load(clearMessage: false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _message = 'Download failed: $e');
     } finally {
       if (mounted) {
-        setState(() => _downloading = false);
+        setState(() {
+          _downloading = false;
+          _progressValue = null;
+          _progressLabel = null;
+        });
       }
     }
   }
@@ -97,19 +122,33 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     setState(() {
       _downloadingSpeech = true;
       _message = null;
+      _progressValue = 0;
+      _progressLabel = 'Preparing offline speech model';
     });
 
     try {
-      await OfflineSpeechRecognitionService.downloadModel();
+      await OfflineSpeechRecognitionService.downloadModel(
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _progressValue = progress.value;
+            _progressLabel = progress.message;
+          });
+        },
+      );
       if (!mounted) return;
       setState(() => _message = 'Offline speech model downloaded.');
-      await _load();
+      await _load(clearMessage: false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _message = 'Speech model download failed: $e');
     } finally {
       if (mounted) {
-        setState(() => _downloadingSpeech = false);
+        setState(() {
+          _downloadingSpeech = false;
+          _progressValue = null;
+          _progressLabel = null;
+        });
       }
     }
   }
@@ -135,6 +174,16 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     if (result.failed.isNotEmpty || ttsResult.failed.isNotEmpty) {
       final failed = result.failed.toSet()..addAll(ttsResult.failed);
       parts.add('Some downloads failed: ${failed.join(', ')}.');
+
+      final unconfiguredTts =
+          ttsResult.failed
+              .where(OfflineTextToSpeechService.needsDownloadConfiguration)
+              .toList();
+      if (unconfiguredTts.isNotEmpty) {
+        parts.add(
+          'Build with FILIPINO_TTS_ARCHIVE_URL to download ${unconfiguredTts.join(', ')} TTS.',
+        );
+      }
     }
 
     if (parts.isNotEmpty) {
@@ -184,6 +233,12 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                   ),
                   _iconButton(
                     theme: theme,
+                    icon: Icons.link_rounded,
+                    onTap: _showServerUrlDialog,
+                  ),
+                  const SizedBox(width: 10),
+                  _iconButton(
+                    theme: theme,
                     icon: Icons.refresh_rounded,
                     onTap:
                         _loading || _downloading || _downloadingSpeech
@@ -207,15 +262,19 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                             downloadedCount: downloaded.length,
                             missingCount: missing.length,
                           ),
-                          const SizedBox(height: 20),
+                          if (_progressLabel != null) ...[
+                            const SizedBox(height: 12),
+                            _progressBar(theme, primary),
+                          ],
+                          const SizedBox(height: 16),
                           _sectionLabel('DOWNLOAD MODELS', theme),
                           const SizedBox(height: 10),
                           _downloadCard(theme, primary),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           _sectionLabel('OFFLINE SPEECH', theme),
                           const SizedBox(height: 10),
                           _speechModelCard(theme, primary),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           _sectionLabel('ON THIS PHONE', theme),
                           const SizedBox(height: 10),
                           _modelsCard(
@@ -260,7 +319,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -270,7 +329,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -295,7 +354,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               installed
                   ? 'The app-owned speech model is stored on this phone and can transcribe without internet.'
@@ -305,7 +364,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -341,20 +400,20 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     required int missingCount,
   }) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: primary.withOpacity(0.09),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: primary.withOpacity(0.18)),
       ),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               color: primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.phone_android_rounded, color: primary),
           ),
@@ -386,11 +445,67 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     );
   }
 
+  Widget _progressBar(ThemeData theme, Color primary) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.dividerColor.withOpacity(0.7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  value: _progressValue,
+                  color: primary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _progressLabel ?? 'Downloading',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              if (_progressValue != null)
+                Text(
+                  '${(_progressValue!.clamp(0.0, 1.0) * 100).round()}%',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: _progressValue,
+              color: primary,
+              backgroundColor: primary.withOpacity(0.12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _downloadCard(ThemeData theme, Color primary) {
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -400,7 +515,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -431,7 +546,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               'Downloads the translation model and the bundled local TTS voice when one is available for the selected language.',
               style: theme.textTheme.bodySmall?.copyWith(
@@ -439,7 +554,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -487,7 +602,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
     return Container(
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -513,6 +628,7 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                         ? 'Local TTS voice stored'
                         : 'Local TTS voice not downloaded';
                 return ListTile(
+                  visualDensity: VisualDensity.compact,
                   leading: Icon(
                     isReady
                         ? Icons.check_circle_rounded
@@ -522,6 +638,8 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
                   title: Text(language),
                   subtitle: Text(
                     '${isReady ? 'Translation stored locally' : 'Translation not downloaded'} - $ttsText',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   dense: true,
                 );
@@ -584,6 +702,76 @@ class _OfflineDownloadsPageState extends State<OfflineDownloadsPage> {
         child: Icon(icon, color: theme.colorScheme.onSurface),
       ),
     );
+  }
+
+  Future<void> _showServerUrlDialog() async {
+    final override = await SettingsService.loadTranslationApiUrlOverride();
+    if (!mounted) return;
+
+    final controller = TextEditingController(text: override ?? '');
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final theme = Theme.of(dialogContext);
+        return AlertDialog(
+          title: const Text('Translation Server'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.url,
+            decoration: const InputDecoration(
+              hintText: 'abc123 or https://abc123.ngrok-free.app',
+              labelText: 'Ngrok code or API URL',
+              helperText:
+                  'Short code becomes https://code.ngrok-free.app/translate/',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await SettingsService.clearTranslationApiUrlOverride();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                setState(
+                  () => _message = 'Translation server override removed.',
+                );
+              },
+              child: const Text('Reset'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final normalised = SettingsService.normaliseTranslationApiUrl(
+                  controller.text,
+                );
+                if (normalised == null) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(
+                      content: const Text('Enter a valid server URL.'),
+                      backgroundColor: theme.colorScheme.error,
+                    ),
+                  );
+                  return;
+                }
+
+                await SettingsService.saveTranslationApiUrlOverride(normalised);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                setState(() => _message = 'Translation server saved.');
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
   }
 
   Widget _sectionLabel(String text, ThemeData theme) {

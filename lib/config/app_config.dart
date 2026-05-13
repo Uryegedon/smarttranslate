@@ -1,8 +1,11 @@
 class AppConfig {
   const AppConfig._();
 
+  static const ngrokScheme = 'https://';
+  static const ngrokHostSuffix = '.ngrok-free.app';
+  static const translationPath = '/translate/';
   static const defaultTranslationApiUrl =
-      'https://smarttranslate.onrender.com/translate/';
+      'http://127.0.0.1:8000/translate/';
 
   static const translationApiUrl = String.fromEnvironment(
     'TRANSLATION_API_URL',

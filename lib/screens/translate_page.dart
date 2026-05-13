@@ -34,6 +34,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
   List<String> _alternativeTranslations = [];
   List<String> _autocompleteSuggestions = [];
   String? _typoSuggestion;
+  String? _phraseSuggestion;
   String _sourceLanguage = 'English';
   String _targetLanguage = 'Spanish';
   String? _voiceStatus;
@@ -41,6 +42,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
   late AnimationController _swapController;
   Timer? _translationDebounce;
   Timer? _offlineTtsCompletionTimer;
+  Timer? _offlineSpeechAutoStopTimer;
   StreamSubscription<NativeSpeechEvent>? _nativeSpeechSubscription;
   int _translationRequestId = 0;
   bool _speechAvailable = false;
@@ -140,7 +142,8 @@ class _TranslatorScreenState extends State<TranslatorScreen>
           _speechAvailable ||
           offlineSpeechStatus.installed ||
           nativeOnDeviceAvailable;
-      if (_speechAvailable && _voiceStatus == 'Speech recognition unavailable') {
+      if (_speechAvailable &&
+          _voiceStatus == 'Speech recognition unavailable') {
         _voiceStatus = null;
       }
     });
@@ -150,6 +153,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
   void dispose() {
     _translationDebounce?.cancel();
     _offlineTtsCompletionTimer?.cancel();
+    _offlineSpeechAutoStopTimer?.cancel();
     _nativeSpeechSubscription?.cancel();
     unawaited(NativeOnDeviceSpeechService.cancel());
     unawaited(_offlineSpeech.dispose());
@@ -165,12 +169,20 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     _translationDebounce?.cancel();
 
     final activeWord = _activeWordFrom(text);
-    final suggestions = LanguageAlgorithms.autocomplete(
-      prefix: activeWord,
-      language: _sourceLanguage,
-    );
+    final suggestions =
+        LanguageAlgorithms.autocomplete(
+          prefix: activeWord,
+          language: _sourceLanguage,
+        ).where((suggestion) {
+          return !suggestion.contains(' ') &&
+              suggestion.toLowerCase() != activeWord.toLowerCase();
+        }).toList();
     final typoSuggestion = LanguageAlgorithms.suggestCorrection(
       word: activeWord,
+      language: _sourceLanguage,
+    );
+    final phraseSuggestion = LanguageAlgorithms.suggestPhraseCompletion(
+      text: text,
       language: _sourceLanguage,
     );
 
@@ -181,6 +193,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
         _alternativeTranslations = [];
         _autocompleteSuggestions = suggestions;
         _typoSuggestion = typoSuggestion;
+        _phraseSuggestion = phraseSuggestion;
       });
       return;
     }
@@ -188,6 +201,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     setState(() {
       _autocompleteSuggestions = suggestions;
       _typoSuggestion = typoSuggestion;
+      _phraseSuggestion = phraseSuggestion;
     });
 
     final requestId = ++_translationRequestId;
@@ -213,7 +227,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
         _targetLanguage,
       );
 
-      final alternatives = LanguageAlgorithms.rankAlternativeTranslations(
+      final alternatives = await _loadAlternativeTranslations(
         originalText: text,
         translatedText: translated,
         sourceLanguage: _sourceLanguage,
@@ -244,6 +258,34 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     }
   }
 
+  Future<List<String>> _loadAlternativeTranslations({
+    required String originalText,
+    required String translatedText,
+    required String sourceLanguage,
+    required String targetLanguage,
+  }) async {
+    final localAlternatives = LanguageAlgorithms.rankAlternativeTranslations(
+      originalText: originalText,
+      translatedText: translatedText,
+      sourceLanguage: sourceLanguage,
+      targetLanguage: targetLanguage,
+    );
+
+    try {
+      final serverAlternatives = await fetchAlternativeTranslations(
+        originalText: originalText,
+        translatedText: translatedText,
+        sourceLanguage: sourceLanguage,
+        targetLanguage: targetLanguage,
+      );
+      return serverAlternatives.isEmpty
+          ? localAlternatives
+          : serverAlternatives;
+    } catch (_) {
+      return localAlternatives;
+    }
+  }
+
   String _activeWordFrom(String text) {
     final words = text.trimRight().split(RegExp(r'\s+'));
     return words.isEmpty ? '' : words.last;
@@ -262,6 +304,39 @@ class _TranslatorScreenState extends State<TranslatorScreen>
       selection: TextSelection.collapsed(offset: newText.length),
     );
     _translate(newText, immediate: true);
+  }
+
+  void _acceptAutocompleteSuggestion() {
+    final suggestion = _inlineAutocompleteSuggestion();
+    if (suggestion == null) return;
+    _replaceActiveWord(suggestion);
+  }
+
+  String? _inlineAutocompleteSuggestion() {
+    final activeWord = _activeWordFrom(_inputController.text);
+    if (activeWord.trim().length < 2) {
+      return null;
+    }
+
+    final normalizedActiveWord = activeWord.toLowerCase();
+    for (final suggestion in _autocompleteSuggestions) {
+      final normalizedSuggestion = suggestion.toLowerCase();
+      if (normalizedSuggestion != normalizedActiveWord &&
+          normalizedSuggestion.startsWith(normalizedActiveWord)) {
+        return suggestion;
+      }
+    }
+
+    return null;
+  }
+
+  String? _inlineAutocompleteSuffix() {
+    final suggestion = _inlineAutocompleteSuggestion();
+    if (suggestion == null) return null;
+
+    final activeWord = _activeWordFrom(_inputController.text);
+    if (activeWord.length >= suggestion.length) return null;
+    return suggestion.substring(activeWord.length);
   }
 
   void _onSourceLanguageChanged(String? newValue) {
@@ -336,8 +411,9 @@ class _TranslatorScreenState extends State<TranslatorScreen>
         _activeSpeechInputMode = _SpeechInputMode.offlineModel;
         _isSpeaking = false;
         _isListening = true;
-        _voiceStatus = 'Listening offline...';
+        _voiceStatus = 'Listening offline... speak now';
       });
+      _scheduleOfflineSpeechAutoStop();
       return;
     }
 
@@ -374,11 +450,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
         final recognized = result.recognizedWords.trim();
         if (recognized.isEmpty) return;
 
-        _inputController.value = TextEditingValue(
-          text: recognized,
-          selection: TextSelection.collapsed(offset: recognized.length),
-        );
-        _translate(recognized, immediate: result.finalResult);
+        _applyRecognizedSpeech(recognized, immediate: result.finalResult);
       },
     );
   }
@@ -441,17 +513,25 @@ class _TranslatorScreenState extends State<TranslatorScreen>
       }
     }
 
-    await _flutterTts.setLanguage(_localeForLanguage(_targetLanguage));
-    await _flutterTts.setVolume(_ttsVolume);
-    if (mounted) {
-      setState(() => _voiceStatus = null);
-    }
+    try {
+      await _flutterTts.setLanguage(_localeForLanguage(_targetLanguage));
+      await _flutterTts.setVolume(_ttsVolume);
+      if (mounted) {
+        setState(() => _voiceStatus = null);
+      }
 
-    final result = await _flutterTts.speak(text);
-    if (result != 1 && mounted) {
+      final result = await _flutterTts.speak(text);
+      if (result != 1 && mounted) {
+        setState(() {
+          _isSpeaking = false;
+          _voiceStatus = 'System text to speech is unavailable.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isSpeaking = false;
-        _voiceStatus = 'System text to speech is unavailable.';
+        _voiceStatus = 'System text to speech failed: $e';
       });
     }
   }
@@ -470,6 +550,8 @@ class _TranslatorScreenState extends State<TranslatorScreen>
 
   Future<void> _stopActiveSpeechInput({bool clearFinalStatus = true}) async {
     final activeMode = _activeSpeechInputMode;
+    _offlineSpeechAutoStopTimer?.cancel();
+    _offlineSpeechAutoStopTimer = null;
 
     switch (activeMode) {
       case _SpeechInputMode.offlineModel:
@@ -484,11 +566,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
           if (recognized.isEmpty) {
             _showVoiceMessage('No speech was detected.');
           } else {
-            _inputController.value = TextEditingValue(
-              text: recognized,
-              selection: TextSelection.collapsed(offset: recognized.length),
-            );
-            _translate(recognized, immediate: true);
+            _applyRecognizedSpeech(recognized, immediate: true);
           }
         } catch (e) {
           _showVoiceMessage('Offline speech failed: $e');
@@ -508,14 +586,43 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     setState(() {
       _activeSpeechInputMode = null;
       _isListening = false;
-      if (clearFinalStatus &&
-          (_voiceStatus == 'Listening...' ||
-              _voiceStatus == 'Listening offline...' ||
-              _voiceStatus == 'Listening on device...' ||
-              _voiceStatus == 'Transcribing offline...')) {
+      if (clearFinalStatus && _isTransientSpeechStatus(_voiceStatus)) {
         _voiceStatus = null;
       }
     });
+  }
+
+  void _scheduleOfflineSpeechAutoStop() {
+    _offlineSpeechAutoStopTimer?.cancel();
+    _offlineSpeechAutoStopTimer = Timer(const Duration(seconds: 5), () async {
+      if (!mounted ||
+          !_isListening ||
+          _activeSpeechInputMode != _SpeechInputMode.offlineModel) {
+        return;
+      }
+
+      await _stopActiveSpeechInput();
+    });
+  }
+
+  void _applyRecognizedSpeech(String recognized, {required bool immediate}) {
+    final cleaned = recognized.trim();
+    if (cleaned.isEmpty) return;
+
+    _inputController.value = TextEditingValue(
+      text: cleaned,
+      selection: TextSelection.collapsed(offset: cleaned.length),
+    );
+    _translate(cleaned, immediate: immediate);
+  }
+
+  bool _isTransientSpeechStatus(String? status) {
+    return status == 'Listening...' ||
+        status == 'Listening offline...' ||
+        status == 'Listening offline... speak now' ||
+        status == 'Listening on device...' ||
+        status == 'Transcribing offline...' ||
+        status == 'Processing speech...';
   }
 
   void _handleNativeSpeechEvent(NativeSpeechEvent event) {
@@ -527,11 +634,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
         return;
       }
 
-      _inputController.value = TextEditingValue(
-        text: recognized,
-        selection: TextSelection.collapsed(offset: recognized.length),
-      );
-      _translate(recognized, immediate: event.isFinal);
+      _applyRecognizedSpeech(recognized, immediate: event.isFinal);
       return;
     }
 
@@ -675,23 +778,7 @@ class _TranslatorScreenState extends State<TranslatorScreen>
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _buildTextCardFull(
-                child: TextField(
-                  controller: _inputController,
-                  onChanged: _translate,
-                  expands: true,
-                  maxLines: null,
-                  minLines: null,
-                  decoration: InputDecoration(
-                    hintText: 'Type something to translate...',
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    filled: false,
-                    contentPadding: EdgeInsets.zero,
-                    hintStyle: TextStyle(color: theme.hintColor, fontSize: 16),
-                  ),
-                  style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16),
-                ),
+                child: _buildAutocompleteInput(theme),
                 icon: Icons.edit_note_rounded,
                 iconColor: primary,
                 trailing: _buildHeaderIconButton(
@@ -719,18 +806,6 @@ class _TranslatorScreenState extends State<TranslatorScreen>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ),
-          ],
-
-          if (_typoSuggestion != null ||
-              _autocompleteSuggestions.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildWritingAssistancePanel(theme),
               ),
             ),
           ],
@@ -892,124 +967,140 @@ class _TranslatorScreenState extends State<TranslatorScreen>
     );
   }
 
-  Widget _buildWritingAssistancePanel(ThemeData theme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_typoSuggestion != null) ...[
-              Row(
-                children: [
-                  Icon(
-                    Icons.auto_fix_high_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Did you mean "$_typoSuggestion"?',
-                      style: TextStyle(
-                        color: theme.colorScheme.onSurface,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _replaceActiveWord(_typoSuggestion!),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'Use',
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (_autocompleteSuggestions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Divider(color: theme.dividerColor, height: 1),
+  Widget _buildAutocompleteInput(ThemeData theme) {
+    final inputStyle =
+        theme.textTheme.bodyLarge?.copyWith(fontSize: 16) ??
+        const TextStyle(fontSize: 16);
+    final suffix = _inlineAutocompleteSuffix();
+    final currentText = _inputController.text;
+
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              TextField(
+                controller: _inputController,
+                onChanged: _translate,
+                expands: true,
+                maxLines: null,
+                minLines: null,
+                decoration: InputDecoration(
+                  hintText: 'Type something to translate...',
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                  contentPadding: EdgeInsets.zero,
+                  hintStyle: TextStyle(color: theme.hintColor, fontSize: 16),
                 ),
-            ],
-            if (_autocompleteSuggestions.isNotEmpty) ...[
-              Row(
-                children: [
-                  Icon(
-                    Icons.manage_search_rounded,
-                    color: theme.colorScheme.secondary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Suggestions',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+                style: inputStyle,
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children:
-                    _autocompleteSuggestions.map((suggestion) {
-                      return GestureDetector(
-                        onTap: () => _replaceActiveWord(suggestion),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
+              if (suffix != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: false,
+                    child: RichText(
+                      text: TextSpan(
+                        style: inputStyle,
+                        children: [
+                          TextSpan(
+                            text: currentText,
+                            style: const TextStyle(color: Colors.transparent),
                           ),
-                          decoration: BoxDecoration(
-                            color: theme.cardColor,
-                            border: Border.all(color: theme.dividerColor),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            suggestion,
-                            style: TextStyle(
-                              color: theme.hintColor,
-                              fontSize: 12,
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.baseline,
+                            baseline: TextBaseline.alphabetic,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: _acceptAutocompleteSuggestion,
+                              child: Text(
+                                suffix,
+                                style: inputStyle.copyWith(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.28),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-              ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
+        if (_phraseSuggestion != null || _typoSuggestion != null) ...[
+          const SizedBox(height: 8),
+          _buildInlineSuggestion(theme),
+        ],
+      ],
+    );
+  }
+
+  void _acceptInlineSuggestion() {
+    final phraseSuggestion = _phraseSuggestion;
+    if (phraseSuggestion != null) {
+      _inputController.value = TextEditingValue(
+        text: phraseSuggestion,
+        selection: TextSelection.collapsed(offset: phraseSuggestion.length),
+      );
+      _translate(phraseSuggestion, immediate: true);
+      return;
+    }
+
+    final typoSuggestion = _typoSuggestion;
+    if (typoSuggestion != null) {
+      _replaceActiveWord(typoSuggestion);
+    }
+  }
+
+  Widget _buildInlineSuggestion(ThemeData theme) {
+    final suggestion = _phraseSuggestion ?? _typoSuggestion ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.14)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.auto_fix_high_rounded,
+            color: theme.colorScheme.primary,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Did you mean "$suggestion"?',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: theme.colorScheme.onSurface,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: _acceptInlineSuggestion,
+            child: Text(
+              'Use',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

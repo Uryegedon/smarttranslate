@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:archive/archive_io.dart';
@@ -22,6 +23,19 @@ class OfflineSpeechModelStatus {
   final String? decoderPath;
   final String? tokensPath;
 }
+
+class OfflineSpeechDownloadProgress {
+  const OfflineSpeechDownloadProgress({
+    required this.message,
+    this.value,
+  });
+
+  final String message;
+  final double? value;
+}
+
+typedef OfflineSpeechDownloadProgressCallback =
+    void Function(OfflineSpeechDownloadProgress progress);
 
 class OfflineSpeechRecognitionService {
   static const String _modelArchiveUrl =
@@ -56,9 +70,17 @@ class OfflineSpeechRecognitionService {
     );
   }
 
-  static Future<void> downloadModel() async {
+  static Future<void> downloadModel({
+    OfflineSpeechDownloadProgressCallback? onProgress,
+  }) async {
     final existing = await loadModelStatus();
     if (existing.installed) {
+      onProgress?.call(
+        const OfflineSpeechDownloadProgress(
+          message: 'Offline speech model already installed',
+          value: 1,
+        ),
+      );
       return;
     }
 
@@ -85,8 +107,19 @@ class OfflineSpeechRecognitionService {
         );
       }
 
+      final contentLength = response.contentLength ?? 0;
+      var received = 0;
       final sink = archiveFile.openWrite();
-      await sink.addStream(response.stream);
+      await for (final chunk in response.stream) {
+        received += chunk.length;
+        sink.add(chunk);
+        onProgress?.call(
+          OfflineSpeechDownloadProgress(
+            message: 'Downloading offline speech model',
+            value: contentLength > 0 ? received / contentLength * 0.85 : null,
+          ),
+        );
+      }
       await sink.flush();
       await sink.close();
       downloaded = true;
@@ -97,8 +130,16 @@ class OfflineSpeechRecognitionService {
       }
     }
 
+    onProgress?.call(
+      const OfflineSpeechDownloadProgress(
+        message: 'Installing offline speech model',
+        value: null,
+      ),
+    );
+    final archivePath = archiveFile.path;
+    final modelRootPath = modelRoot.path;
     try {
-      await extractFileToDisk(archiveFile.path, modelRoot.path);
+      await Isolate.run(() => extractFileToDisk(archivePath, modelRootPath));
     } finally {
       if (await archiveFile.exists()) {
         await archiveFile.delete();
@@ -111,6 +152,12 @@ class OfflineSpeechRecognitionService {
         'Speech model archive extracted, but required model files were not found.',
       );
     }
+    onProgress?.call(
+      const OfflineSpeechDownloadProgress(
+        message: 'Offline speech model installed',
+        value: 1,
+      ),
+    );
   }
 
   Future<bool> canRecord() {

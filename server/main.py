@@ -1,10 +1,17 @@
+import json
 import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 SERVER_DIR = Path(__file__).resolve().parent
+DATA_DIR = SERVER_DIR / "data"
+PHRASEBANK_PATH = SERVER_DIR / "data" / "phrasebank.json"
+TRANSLATION_HISTORY_PATH = DATA_DIR / "translation_history.json"
+MAX_TRANSLATION_HISTORY = 500
 ARGOS_DIR = SERVER_DIR / ".argos"
 os.environ.setdefault("XDG_CONFIG_HOME", str(ARGOS_DIR / "config"))
 os.environ.setdefault("XDG_DATA_HOME", str(ARGOS_DIR / "data"))
@@ -30,7 +37,24 @@ except ImportError:  # Keeps startup error readable if requirements were skipped
 
 
 app = FastAPI(title="SmartPath Translation API")
+cors_origins = [
+    origin.strip()
+    for origin in os.environ.get("TRANSLATION_CORS_ORIGINS", "*").split(",")
+    if origin.strip()
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins or ["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 _ARGOS_LANGUAGE_CACHE = None
+_PHRASEBANK = None
+ALLOW_ONLINE_FALLBACK = os.environ.get(
+    "TRANSLATION_ALLOW_ONLINE_FALLBACK",
+    "true",
+).strip().lower() not in {"0", "false", "no", "off"}
 
 LANGUAGE_CODES = {
     "auto": "auto",
@@ -46,10 +70,26 @@ class TranslateRequest(BaseModel):
     text: str
     source_language: str | None = "Auto"
     target_language: str | None = "English"
+    record: bool | None = True
 
 
 class TranslateBatchRequest(BaseModel):
     items: list[TranslateRequest]
+
+
+class AlternativesRequest(BaseModel):
+    text: str
+    source_language: str | None = "English"
+    target_language: str | None = "English"
+    translated_text: str | None = None
+    limit: int | None = 3
+
+
+class TranslationHistoryRecordRequest(BaseModel):
+    text: str
+    translated_text: str
+    source_language: str | None = "English"
+    target_language: str | None = "English"
 
 
 class OfflineModuleInstallRequest(BaseModel):
@@ -64,6 +104,10 @@ def health():
     return {
         "status": "ok",
         "offline_translation": _installed_argos_pairs(),
+        "online_fallback_enabled": ALLOW_ONLINE_FALLBACK,
+        "cors_origins": cors_origins or ["*"],
+        "phrasebank_concepts": len(_load_phrasebank()),
+        "translation_history_entries": len(_load_translation_history()),
     }
 
 
@@ -153,12 +197,22 @@ def install_offline_modules(request: OfflineModuleInstallRequest):
 
 @app.post("/translate/")
 def translate(request: TranslateRequest):
-    return {
-        "translated_text": _translate_text(
-            text=request.text,
+    translated_text, provider = _translate_with_provider(
+        text=request.text,
+        source_language=request.source_language,
+        target_language=request.target_language,
+    )
+    if request.record:
+        _record_translation(
+            source_text=request.text,
+            translated_text=translated_text,
             source_language=request.source_language,
             target_language=request.target_language,
         )
+
+    return {
+        "translated_text": translated_text,
+        "provider": provider,
     }
 
 
@@ -170,13 +224,23 @@ def translate_batch(request: TranslateBatchRequest):
     translations = []
     for item in request.items:
         try:
+            translated_text, provider = _translate_with_provider(
+                text=item.text,
+                source_language=item.source_language,
+                target_language=item.target_language,
+            )
+            if item.record:
+                _record_translation(
+                    source_text=item.text,
+                    translated_text=translated_text,
+                    source_language=item.source_language,
+                    target_language=item.target_language,
+                )
+
             translations.append(
                 {
-                    "translated_text": _translate_text(
-                        text=item.text,
-                        source_language=item.source_language,
-                        target_language=item.target_language,
-                    )
+                    "translated_text": translated_text,
+                    "provider": provider,
                 }
             )
         except HTTPException as exc:
@@ -190,20 +254,135 @@ def translate_batch(request: TranslateBatchRequest):
     return {"translations": translations}
 
 
+@app.post("/translation-history/")
+def record_translation_history(request: TranslationHistoryRecordRequest):
+    _record_translation(
+        source_text=request.text,
+        translated_text=request.translated_text,
+        source_language=request.source_language,
+        target_language=request.target_language,
+    )
+    return {
+        "stored": True,
+        "translation_history_entries": len(_load_translation_history()),
+    }
+
+
+@app.get("/game-words/")
+def game_words(languages: str | None = None, limit: int = 18):
+    requested_languages = _requested_game_languages(languages)
+    max_base_words = max(1, min(limit, 100))
+    history = _load_translation_history()
+
+    words: list[dict] = []
+    used_base_words: set[str] = set()
+    for entry in reversed(history):
+        base_word = entry.get("base_word")
+        translations = entry.get("translations", {})
+        if not isinstance(base_word, str) or not isinstance(translations, dict):
+            continue
+
+        cleaned_base_word = _clean_game_word(base_word)
+        if not cleaned_base_word or cleaned_base_word.lower() in used_base_words:
+            continue
+
+        entry_words = []
+        for language in requested_languages:
+            translation = translations.get(_normalize_language(language, fallback=""))
+            cleaned_translation = _clean_game_word(translation)
+            if not cleaned_translation:
+                continue
+
+            entry_words.append(
+                {
+                    "base_word": cleaned_base_word,
+                    "language": language,
+                    "word": cleaned_translation,
+                }
+            )
+
+        if entry_words:
+            used_base_words.add(cleaned_base_word.lower())
+            words.extend(entry_words)
+
+        if len(used_base_words) >= max_base_words:
+            break
+
+    return {"words": words}
+
+
+@app.post("/alternatives/")
+def alternatives(request: AlternativesRequest):
+    target_language = _normalize_language(
+        request.target_language,
+        fallback="english",
+    )
+    if target_language == "auto":
+        raise HTTPException(status_code=400, detail="Target language cannot be Auto.")
+
+    match = _best_phrasebank_match(
+        text=request.text,
+        source_language=_normalize_language(
+            request.source_language,
+            fallback="auto",
+        ),
+        target_language=target_language,
+    )
+    if match is None:
+        return {
+            "matched_concept": None,
+            "intent": None,
+            "score": 0,
+            "alternatives": [],
+        }
+
+    concept, score = match
+    translations = concept.get("translations", {})
+    candidates = translations.get(target_language, [])
+    alternatives = _unique_texts(
+        candidates,
+        exclude={
+            request.text,
+            request.translated_text or "",
+        },
+        limit=max(1, min(request.limit or 3, 10)),
+    )
+
+    return {
+        "matched_concept": concept.get("id"),
+        "intent": concept.get("intent"),
+        "score": score,
+        "alternatives": alternatives,
+    }
+
+
 def _translate_text(
     text: str,
     source_language: str | None,
     target_language: str | None,
 ) -> str:
+    translated_text, _ = _translate_with_provider(
+        text=text,
+        source_language=source_language,
+        target_language=target_language,
+    )
+    return translated_text
+
+
+def _translate_with_provider(
+    text: str,
+    source_language: str | None,
+    target_language: str | None,
+) -> tuple[str, str]:
     text = text.strip()
     if not text:
-        return ""
+        return "", "empty"
 
     source_language = _normalize_language(source_language, fallback="auto")
     target_language = _normalize_language(target_language, fallback="english")
 
     if source_language == target_language:
-        return text
+        return text, "identity"
 
     offline_translation = _translate_with_argos(
         text=text,
@@ -211,7 +390,13 @@ def _translate_text(
         target_language=target_language,
     )
     if offline_translation is not None:
-        return offline_translation
+        return offline_translation, "argos"
+
+    if not ALLOW_ONLINE_FALLBACK:
+        raise HTTPException(
+            status_code=424,
+            detail="No offline translation module is installed for this language pair.",
+        )
 
     if GoogleTranslator is None:
         raise HTTPException(
@@ -233,7 +418,267 @@ def _translate_text(
     if not translated:
         raise HTTPException(status_code=502, detail="Translation provider returned no text.")
 
-    return translated
+    return translated, "google"
+
+
+def _load_translation_history() -> list[dict]:
+    if not TRANSLATION_HISTORY_PATH.exists():
+        return []
+
+    try:
+        with TRANSLATION_HISTORY_PATH.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    return data if isinstance(data, list) else []
+
+
+def _save_translation_history(history: list[dict]):
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    with TRANSLATION_HISTORY_PATH.open("w", encoding="utf-8") as file:
+        json.dump(
+            history[-MAX_TRANSLATION_HISTORY:],
+            file,
+            ensure_ascii=False,
+            indent=2,
+        )
+
+
+def _record_translation(
+    source_text: str,
+    translated_text: str,
+    source_language: str | None,
+    target_language: str | None,
+):
+    source_key = _normalize_language(source_language, fallback="auto")
+    target_key = _normalize_language(target_language, fallback="english")
+    if (
+        not source_text.strip()
+        or not translated_text.strip()
+        or source_key in {"", "auto"}
+        or target_key in {"", "auto"}
+        or source_key == target_key
+    ):
+        return
+
+    if source_key == "english":
+        base_word = source_text.strip()
+        translation_language = target_key
+        translation_text = translated_text.strip()
+    elif target_key == "english":
+        base_word = translated_text.strip()
+        translation_language = source_key
+        translation_text = source_text.strip()
+    else:
+        return
+
+    if not _is_game_sized_text(base_word) or not _is_game_sized_text(translation_text):
+        return
+
+    history = _load_translation_history()
+    normalized_base_word = _normalize_text(base_word)
+    existing = next(
+        (
+            entry
+            for entry in history
+            if _normalize_text(entry.get("base_word")) == normalized_base_word
+        ),
+        None,
+    )
+
+    if existing is None:
+        existing = {
+            "base_word": base_word,
+            "translations": {},
+            "uses": 0,
+        }
+        history.append(existing)
+
+    translations = existing.setdefault("translations", {})
+    if isinstance(translations, dict):
+        translations[translation_language] = translation_text
+    existing["uses"] = int(existing.get("uses") or 0) + 1
+
+    _save_translation_history(history)
+
+
+def _requested_game_languages(languages: str | None) -> list[str]:
+    supported = {
+        language.title(): key
+        for key, language in {
+            "english": "English",
+            "spanish": "Spanish",
+            "filipino": "Filipino",
+            "japanese": "Japanese",
+            "russian": "Russian",
+        }.items()
+    }
+    if not languages:
+        return list(supported.keys())
+
+    requested = []
+    for language in languages.split(","):
+        display_name = language.strip().title()
+        if display_name in supported and display_name not in requested:
+            requested.append(display_name)
+
+    return requested or list(supported.keys())
+
+
+def _clean_game_word(value: str | None) -> str:
+    return re.sub(r"[.!?]+$", "", (value or "").strip())
+
+
+def _is_game_sized_text(value: str) -> bool:
+    words = [word for word in re.split(r"\s+", value.strip()) if word]
+    return 1 <= len(words) <= 6 and len(value.strip()) <= 80
+
+
+def _load_phrasebank() -> list[dict]:
+    global _PHRASEBANK
+    if _PHRASEBANK is not None:
+        return _PHRASEBANK
+
+    if not PHRASEBANK_PATH.exists():
+        _PHRASEBANK = []
+        return _PHRASEBANK
+
+    with PHRASEBANK_PATH.open("r", encoding="utf-8") as file:
+        data = json.load(file)
+
+    if not isinstance(data, list):
+        raise RuntimeError("Phrasebank must be a JSON list.")
+
+    _PHRASEBANK = [
+        concept
+        for concept in data
+        if isinstance(concept, dict) and isinstance(concept.get("translations"), dict)
+    ]
+    return _PHRASEBANK
+
+
+def _best_phrasebank_match(
+    text: str,
+    source_language: str,
+    target_language: str,
+) -> tuple[dict, int] | None:
+    normalized_text = _normalize_text(text)
+    if not normalized_text:
+        return None
+
+    best_concept = None
+    best_score = 0
+    for concept in _load_phrasebank():
+        translations = concept.get("translations", {})
+        source_phrases = _source_phrases_for_match(
+            translations=translations,
+            source_language=source_language,
+            target_language=target_language,
+        )
+        for phrase in source_phrases:
+            score = _phrase_similarity_score(normalized_text, phrase)
+            if score > best_score:
+                best_score = score
+                best_concept = concept
+
+    if best_concept is None or best_score < 58:
+        return None
+
+    return best_concept, best_score
+
+
+def _source_phrases_for_match(
+    translations: dict,
+    source_language: str,
+    target_language: str,
+) -> list[str]:
+    if source_language != "auto":
+        phrases = translations.get(source_language, [])
+        return phrases if isinstance(phrases, list) else []
+
+    phrases: list[str] = []
+    for language, values in translations.items():
+        if language == target_language or not isinstance(values, list):
+            continue
+        phrases.extend(values)
+    return phrases
+
+
+def _phrase_similarity_score(text: str, phrase: str) -> int:
+    normalized_phrase = _normalize_text(phrase)
+    if not normalized_phrase:
+        return 0
+    if text == normalized_phrase:
+        return 100
+
+    text_tokens = _tokens(text)
+    phrase_tokens = _tokens(normalized_phrase)
+    token_score = 0
+    if text_tokens and phrase_tokens:
+        shared_tokens = len(text_tokens.intersection(phrase_tokens))
+        smaller_token_count = min(len(text_tokens), len(phrase_tokens))
+        token_score = round(shared_tokens / smaller_token_count * 100)
+
+    max_length = max(len(text), len(normalized_phrase))
+    edit_score = round(
+        (1 - (_levenshtein_distance(text, normalized_phrase) / max_length)) * 100
+    )
+    contains_score = 90 if text in normalized_phrase or normalized_phrase in text else 0
+    return max(token_score, edit_score, contains_score)
+
+
+def _levenshtein_distance(first: str, second: str) -> int:
+    rows = len(first) + 1
+    columns = len(second) + 1
+    table = [[0] * columns for _ in range(rows)]
+
+    for row in range(rows):
+        table[row][0] = row
+    for column in range(columns):
+        table[0][column] = column
+
+    for row in range(1, rows):
+        for column in range(1, columns):
+            cost = 0 if first[row - 1] == second[column - 1] else 1
+            table[row][column] = min(
+                table[row - 1][column] + 1,
+                table[row][column - 1] + 1,
+                table[row - 1][column - 1] + cost,
+            )
+
+    return table[-1][-1]
+
+
+def _tokens(text: str) -> set[str]:
+    return {
+        token
+        for token in re.split(r"[^\w]+", _normalize_text(text), flags=re.UNICODE)
+        if len(token) > 1
+    }
+
+
+def _unique_texts(
+    candidates: list[str],
+    exclude: set[str],
+    limit: int,
+) -> list[str]:
+    excluded = {_normalize_text(item) for item in exclude if item}
+    seen: set[str] = set()
+    results: list[str] = []
+    for candidate in candidates:
+        normalized = _normalize_text(candidate)
+        if not normalized or normalized in excluded or normalized in seen:
+            continue
+        seen.add(normalized)
+        results.append(candidate)
+        if len(results) >= limit:
+            break
+    return results
+
+
+def _normalize_text(text: str | None) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip().lower())
 
 
 def _normalize_language(value: str | None, fallback: str) -> str:

@@ -26,6 +26,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
   String _ocrTargetLanguage = SettingsService.defaultOcrTargetLanguage;
   double _ocrTextSize = SettingsService.defaultOcrTextSize;
   String _recognizedText = '';
+  String? _ocrMessage;
 
   @override
   void initState() {
@@ -84,6 +85,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
         _isProcessing = true;
         _isTranslated = false;
         _recognizedText = 'Processing...';
+        _ocrMessage = null;
       });
 
       final image = await _cameraController!.takePicture();
@@ -100,6 +102,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
       setState(() {
         _recognizedText = 'Error: ${e.toString()}';
         _isTranslated = false;
+        _ocrMessage = null;
       });
     } finally {
       if (mounted) {
@@ -125,6 +128,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
         _isProcessing = true;
         _isTranslated = false;
         _recognizedText = 'Processing...';
+        _ocrMessage = null;
       });
 
       await _extractText(pickedFile.path);
@@ -134,6 +138,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
       setState(() {
         _recognizedText = 'Error processing image';
         _isTranslated = false;
+        _ocrMessage = null;
       });
     } finally {
       if (mounted) {
@@ -159,6 +164,8 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
     setState(() {
       _recognizedText = extractedText;
       _isTranslated = false;
+      _ocrMessage =
+          _ocrAutoTranslate ? null : 'Auto translate is off. Text extracted only.';
     });
 
     if (_ocrAutoTranslate && extractedText != 'No text recognized') {
@@ -175,7 +182,10 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
       return;
     }
 
-    setState(() => _isTranslating = true);
+    setState(() {
+      _isTranslating = true;
+      _ocrMessage = null;
+    });
 
     try {
       final translated = await translateDetectedText(
@@ -188,11 +198,13 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
       setState(() {
         _recognizedText = translated.isEmpty ? text : translated;
         _isTranslated = true;
+        _ocrMessage = null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _recognizedText = 'Error: $e';
+        _recognizedText = text;
+        _ocrMessage = 'Translation failed: $e';
         _isTranslated = false;
       });
     } finally {
@@ -225,7 +237,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
     super.dispose();
   }
 
-  String get _tesseractLanguages => 'eng+spa+tgl+rus';
+  String get _tesseractLanguages => 'eng+spa+tgl+rus+jpn';
 
   @override
   Widget build(BuildContext context) {
@@ -234,6 +246,7 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
     final canTranslate =
         _recognizedText.trim().isNotEmpty &&
         !_isTranslated &&
+        _ocrAutoTranslate &&
         !_isProcessing &&
         !_isTranslating &&
         _recognizedText != 'Processing...' &&
@@ -383,6 +396,21 @@ class _CameraOcrPageState extends State<CameraOcrPage> {
                                   height: 1.5,
                                 ),
                               ),
+                              if (_ocrMessage != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _ocrMessage!,
+                                  style: TextStyle(
+                                    color: _ocrMessage!.startsWith(
+                                          'Translation failed:',
+                                        )
+                                        ? theme.colorScheme.error
+                                        : theme.hintColor,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                               if (canTranslate || _isTranslating) ...[
                                 const SizedBox(height: 16),
                                 SizedBox(

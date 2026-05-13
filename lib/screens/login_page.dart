@@ -112,10 +112,15 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void continueAsGuest() {
+  Future<void> continueAsGuest() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+    await prefs.setBool('isGuest', true);
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => TranslatorScreen()),
+      MaterialPageRoute(builder: (context) => const TranslatorScreen()),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -400,10 +401,15 @@ Smart Path Solutions
                                                 FieldValue.serverTimestamp(),
                                           });
 
+                                      final prefs =
+                                          await SharedPreferences.getInstance();
+                                      await prefs.setBool('isLoggedIn', true);
+                                      await prefs.setBool('isGuest', false);
+
                                       if (!mounted || !context.mounted) return;
                                       Navigator.pushReplacementNamed(
                                         context,
-                                        '/',
+                                        '/translate',
                                       );
                                     } on FirebaseAuthException catch (e) {
                                       String errorMessage;

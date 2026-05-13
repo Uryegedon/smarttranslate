@@ -6,6 +6,7 @@ class WelcomePage extends StatelessWidget {
 
   void continueAsGuest(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
     await prefs.setBool('isGuest', true);
     if (!context.mounted) return;
     Navigator.pushReplacementNamed(context, '/translate');

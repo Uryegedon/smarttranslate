@@ -256,7 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       () {
                         FirebaseAuth.instance.signOut().then((_) async {
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.clear();
+                          await prefs.setBool('isLoggedIn', false);
+                          await prefs.setBool('isGuest', false);
                           if (!mounted || !context.mounted) return;
                           Navigator.pushNamedAndRemoveUntil(
                             context,

@@ -22,6 +22,25 @@ class DeviceTranslationDownloadResult {
   final List<String> failed;
 }
 
+class DeviceTranslationDownloadProgress {
+  const DeviceTranslationDownloadProgress({
+    required this.language,
+    required this.completed,
+    required this.total,
+    required this.message,
+  });
+
+  final String language;
+  final int completed;
+  final int total;
+  final String message;
+
+  double get value => total == 0 ? 0 : completed / total;
+}
+
+typedef DeviceTranslationDownloadProgressCallback =
+    void Function(DeviceTranslationDownloadProgress progress);
+
 class DeviceTranslationService {
   DeviceTranslationService._();
 
@@ -61,16 +80,38 @@ class DeviceTranslationService {
   }
 
   static Future<DeviceTranslationDownloadResult> downloadLanguages(
-    Iterable<String> languages,
-  ) async {
+    Iterable<String> languages, {
+    DeviceTranslationDownloadProgressCallback? onProgress,
+  }) async {
     final downloaded = <String>[];
     final alreadyInstalled = <String>[];
     final failed = <String>[];
+    final selectedLanguages = languages.toSet().toList();
+    final total = selectedLanguages.length;
+    var completed = 0;
 
-    for (final language in languages.toSet()) {
+    for (final language in selectedLanguages) {
+      onProgress?.call(
+        DeviceTranslationDownloadProgress(
+          language: language,
+          completed: completed,
+          total: total,
+          message: 'Downloading $language translation model',
+        ),
+      );
+
       final model = _translateLanguage(language);
       if (model == null) {
         failed.add(language);
+        completed++;
+        onProgress?.call(
+          DeviceTranslationDownloadProgress(
+            language: language,
+            completed: completed,
+            total: total,
+            message: '$language translation is not supported',
+          ),
+        );
         continue;
       }
 
@@ -78,6 +119,15 @@ class DeviceTranslationService {
         final isDownloaded = await _isDownloaded(model);
         if (isDownloaded) {
           alreadyInstalled.add(language);
+          completed++;
+          onProgress?.call(
+            DeviceTranslationDownloadProgress(
+              language: language,
+              completed: completed,
+              total: total,
+              message: '$language translation already installed',
+            ),
+          );
           continue;
         }
 
@@ -94,6 +144,16 @@ class DeviceTranslationService {
       } catch (_) {
         failed.add(language);
       }
+
+      completed++;
+      onProgress?.call(
+        DeviceTranslationDownloadProgress(
+          language: language,
+          completed: completed,
+          total: total,
+          message: '$language translation checked',
+        ),
+      );
     }
 
     return DeviceTranslationDownloadResult(

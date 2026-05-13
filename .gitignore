@@ -70,6 +70,7 @@ screenshots/
 # Local offline translation/speech model caches and archives
 .argos/
 /server/.argos/
+server/data/translation_history.json
 server/.cache/
 server/.config/
 server/.local/
